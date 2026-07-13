@@ -343,6 +343,8 @@ components:
           type: string
         email:
           type: string
+        photoUrl:
+          type: string
     EmployeeDetail:
       type: object
       properties:

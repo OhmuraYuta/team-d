@@ -226,7 +226,8 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
         "department": "技術開発部",
         "location": "技術センター",
         "position": "チーフエンジニア",
-        "email": "yuta.ohmura@example.com"
+        "email": "yuta.ohmura@example.com",
+        "photoUrl": "/images/emp001.jpg"
       }
     ]
   }
