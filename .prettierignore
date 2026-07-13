@@ -1,0 +1,14 @@
+# ビルド成果物・依存
+.next/
+out/
+build/
+node_modules/
+package-lock.json
+
+# ドキュメント（仕様書等の整形による差分を避ける）
+*.md
+docs/
+
+# その他
+public/
+.env*
