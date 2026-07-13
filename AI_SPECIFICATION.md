@@ -204,6 +204,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 #### `GET /employees`
 - **概要**: 社員情報の検索（AND条件）。
 - **Query Parameters**:
+  - `employeeId` (完全一致)
   - `lastName` (部分一致)
   - `firstName` (部分一致)
   - `departmentId` (完全一致、UUIDv7値)
@@ -225,7 +226,8 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
         "department": "技術開発部",
         "location": "技術センター",
         "position": "チーフエンジニア",
-        "email": "yuta.ohmura@example.com"
+        "email": "yuta.ohmura@example.com",
+        "photoUrl": "/images/emp001.jpg"
       }
     ]
   }
