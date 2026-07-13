@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: フロンティア精機 社員情報活用システム API
+  version: 1.0.0
+  description: フロンティア精機の社員情報一元管理、社員検索、座席フロア表示、サンクスメッセージ送信機能を持つWebアプリケーションのAPI仕様です。
+servers:
+  - url: /api/v1
+    description: 開発環境ベースURL
+paths:
+  /auth/login:
+    post:
+      summary: ユーザー認証 (ログイン)
+      description: ログインIDとパスワードで認証を行い、JWTをHttpOnly Cookieとして設定します。
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - employeeId
+                - password
+              properties:
+                employeeId:
+                  type: string
+                  example: EMP001
+                  description: ログイン用の社員ID
+                password:
+                  type: string
+                  format: password
+                  example: SecurePassword123
+      responses:
+        '200':
+          description: 認証成功 (JWTがCookieにセットされます)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/AuthUser'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: token=abcde12345; HttpOnly; Path=/; Max-Age=1800; SameSite=Lax
+        '403':
+          description: アカウントロック状態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /employees:
+    get:
+      summary: 社員情報の検索
+      description: 複合条件（AND条件）で社員を検索します。
+      tags:
+        - Employees
+      parameters:
+        - in: query
+          name: lastName
+          schema:
+            type: string
+          description: 姓 (部分一致)
+        - in: query
+          name: firstName
+          schema:
+            type: string
+          description: 名 (部分一致)
+        - in: query
+          name: departmentId
+          schema:
+            type: string
+            format: uuid
+          description: 部署ID (完全一致、UUIDv7)
+        - in: query
+          name: locationId
+          schema:
+            type: string
+            format: uuid
+          description: 拠点ID (完全一致、UUIDv7)
+        - in: query
+          name: skill
+          schema:
+            type: string
+          description: スキル名(部分一致)またはスキルID
+        - in: query
+          name: credential
+          schema:
+            type: string
+          description: 資格名(部分一致)または資格ID
+        - in: query
+          name: project
+          schema:
+            type: string
+          description: 過去担当プロジェクト名 (部分一致)
+        - in: query
+          name: hobby
+          schema:
+            type: string
+          description: 趣味 (部分一致)
+      responses:
+        '200':
+          description: 検索結果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    example: 1
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EmployeeSearchResult'
+  
+  /employees/{id}:
+    get:
+      summary: 社員詳細情報の取得
+      description: 指定されたUUIDの社員の詳細情報を取得します。
+      tags:
+        - Employees
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: 社員ID (UUIDv7)
+      responses:
+        '200':
+          description: 社員詳細情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetail'
+        '404':
+          description: 指定された社員が見つからない場合
+  
+  /messages:
+    post:
+      summary: ありがとうメッセージの送信
+      description: 特定の社員に対してありがとうメッセージを送信します。
+      tags:
+        - Messages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - receiverId
+                - content
+              properties:
+                receiverId:
+                  type: string
+                  format: uuid
+                  example: 01907d72-f12a-7abc-bcde-1234567890ab
+                content:
+                  type: string
+                  example: プロジェクトのサポートありがとうございました！助かりました。
+      responses:
+        '201':
+          description: メッセージ送信成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messageId:
+                    type: string
+                    format: uuid
+                    example: 01907d73-12ab-7cde-8901-abcdef012345
+                    
+  /messages/latest:
+    get:
+      summary: 最新メッセージの取得
+      description: トップページ表示用に、最新のありがとうメッセージを5件取得します。
+      tags:
+        - Messages
+      responses:
+        '200':
+          description: 最新メッセージの配列
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+                  
+  /admin/employees:
+    post:
+      summary: 新規社員登録 (管理者機能)
+      tags:
+        - Admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeCreateInput'
+      responses:
+        '201':
+          description: 登録成功
+          
+  /admin/employees/{id}:
+    put:
+      summary: 社員情報の更新 (管理者機能)
+      tags:
+        - Admin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeUpdateInput'
+      responses:
+        '200':
+          description: 更新成功
+    delete:
+      summary: 社員情報の削除 (管理者機能)
+      tags:
+        - Admin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 削除成功
+          
+  /admin/users/{id}/unlock:
+    post:
+      summary: アカウントロック解除 (管理者機能)
+      description: 指定した社員のアカウントロック状態を解除し、失敗回数を0にリセットします。
+      tags:
+        - Admin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: ロック解除成功
+          
+  /admin/settings/max-failed-attempts:
+    put:
+      summary: ログイン試行回数の設定変更 (管理者機能)
+      tags:
+        - Admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - maxFailedAttempts
+              properties:
+                maxFailedAttempts:
+                  type: integer
+                  example: 5
+      responses:
+        '200':
+          description: 設定変更成功
+
+components:
+  schemas:
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        role:
+          type: string
+          enum: [EMPLOYEE, ADMIN]
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: ACCOUNT_LOCKED
+        message:
+          type: string
+          example: アカウントがロックされています。管理者に問い合わせてください。
+    EmployeeSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        department:
+          type: string
+        location:
+          type: string
+        position:
+          type: string
+        email:
+          type: string
+    EmployeeDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        email:
+          type: string
+        department:
+          type: string
+        location:
+          type: string
+        position:
+          type: string
+        photoUrl:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        credentials:
+          type: array
+          items:
+            type: string
+        experiences:
+          type: array
+          items:
+            type: object
+            properties:
+              projectName:
+                type: string
+              roleDescription:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+        selfPR:
+          type: string
+        hobbyInfo:
+          type: string
+        seat:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            seatCode:
+              type: string
+            floor:
+              type: string
+            x:
+              type: integer
+            y:
+              type: integer
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        senderId:
+          type: string
+          format: uuid
+        senderName:
+          type: string
+        receiverId:
+          type: string
+          format: uuid
+        receiverName:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    EmployeeCreateInput:
+      type: object
+      properties:
+        loginId:
+          type: string
+        password:
+          type: string
+        lastName:
+          type: string
+        firstName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [EMPLOYEE, ADMIN]
+        departmentId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        positionId:
+          type: string
+          format: uuid
+        seatId:
+          type: string
+          format: uuid
+        photoUrl:
+          type: string
+        selfPR:
+          type: string
+        hobbyInfo:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+            format: uuid
+        credentials:
+          type: array
+          items:
+            type: string
+            format: uuid
+        experiences:
+          type: array
+          items:
+            type: object
+            properties:
+              projectName:
+                type: string
+              roleDescription:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
+    EmployeeUpdateInput:
+      type: object
+      properties:
+        lastName:
+          type: string
+        firstName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [EMPLOYEE, ADMIN]
+        departmentId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        positionId:
+          type: string
+          format: uuid
+        seatId:
+          type: string
+          format: uuid
+        photoUrl:
+          type: string
+        selfPR:
+          type: string
+        hobbyInfo:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+            format: uuid
+        credentials:
+          type: array
+          items:
+            type: string
+            format: uuid
+        experiences:
+          type: array
+          items:
+            type: object
+            properties:
+              projectName:
+                type: string
+              roleDescription:
+                type: string
+              startDate:
+                type: string
+                format: date
+              endDate:
+                type: string
+                format: date
