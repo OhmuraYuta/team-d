@@ -64,6 +64,11 @@ paths:
         - Employees
       parameters:
         - in: query
+          name: employeeId
+          schema:
+            type: string
+          description: 社員ID (完全一致)
+        - in: query
           name: lastName
           schema:
             type: string
