@@ -171,6 +171,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json<LoginSuccessResponse>(
       {
         success: true,
+        token,
         user: authUser,
       },
       { status: 200 }
