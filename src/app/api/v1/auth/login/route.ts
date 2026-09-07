@@ -108,17 +108,21 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const nextFailedAttempts = (user.failed_attempts || 0) + 1;
+      // アトミックに failed_attempts をインクリメントし、閾値到達時はロックも同時に設定
+      const updateResult = await query<{ failed_attempts: number; is_locked: boolean }>(
+        `UPDATE employees
+         SET failed_attempts = failed_attempts + 1,
+             is_locked = CASE WHEN failed_attempts + 1 >= $1 THEN TRUE ELSE is_locked END,
+             locked_at = CASE WHEN failed_attempts + 1 >= $1 THEN CURRENT_TIMESTAMP ELSE locked_at END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2
+         RETURNING failed_attempts, is_locked`,
+        [maxAttempts, user.id]
+      );
 
-      if (nextFailedAttempts >= maxAttempts) {
-        // ロック状態へ更新
-        await query(
-          `UPDATE employees
-           SET failed_attempts = $1, is_locked = TRUE, locked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-           WHERE id = $2`,
-          [nextFailedAttempts, user.id]
-        );
+      const updated = updateResult.rows[0];
 
+      if (updated.is_locked) {
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -128,14 +132,6 @@ export async function POST(request: NextRequest) {
           { status: 403 }
         );
       } else {
-        // 失敗回数をインクリメント
-        await query(
-          `UPDATE employees
-           SET failed_attempts = $1, updated_at = CURRENT_TIMESTAMP
-           WHERE id = $2`,
-          [nextFailedAttempts, user.id]
-        );
-
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
