@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: フロンティア精機の社員情報一元管理、社員検索、座席フロア表示、サンクスメッセージ送信機能を持つWebアプリケーションのAPI仕様です。
 servers:
+  - url: http://localhost:3000/api/v1
+    description: ローカル開発環境 (Next.js)
   - url: /api/v1
-    description: 開発環境ベースURL
+    description: 相対パス (本番/同一オリジン環境)
 paths:
   /auth/login:
     post:
