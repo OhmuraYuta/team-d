@@ -1,7 +1,12 @@
 import { SignJWT, jwtVerify } from "jose";
 import { JwtCustomPayload } from "./types/auth";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-for-dev-only-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set in environment variables");
+}
+
 const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 
 export const TOKEN_COOKIE_NAME = "token";
