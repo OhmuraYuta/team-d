@@ -212,6 +212,9 @@ paths:
       summary: 新規社員登録 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -221,6 +224,34 @@ paths:
       responses:
         '201':
           description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeCreateResponse'
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 権限不足 (管理者以外)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 社員IDまたはメールアドレス等の重複
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
           
   /admin/employees/{id}:
     put:
@@ -545,3 +576,29 @@ components:
               endDate:
                 type: string
                 format: date
+    EmployeeCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        id:
+          type: string
+          format: uuid
+          example: 01907d72-b7b5-7798-8cd3-4927b233a0c2
+        message:
+          type: string
+          example: 社員を登録しました。
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: ログイン成功時に発行されるJWT Cookie (token)
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: AuthorizationヘッダーによるJWT (Bearer <token>)
+
