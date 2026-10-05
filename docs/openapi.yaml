@@ -4,8 +4,10 @@ info:
   version: 1.0.0
   description: フロンティア精機の社員情報一元管理、社員検索、座席フロア表示、サンクスメッセージ送信機能を持つWebアプリケーションのAPI仕様です。
 servers:
+  - url: http://localhost:3000/api/v1
+    description: ローカル開発環境 (Next.js)
   - url: /api/v1
-    description: 開発環境ベースURL
+    description: 相対パス (本番/同一オリジン環境)
 paths:
   /auth/login:
     post:
@@ -210,6 +212,9 @@ paths:
       summary: 新規社員登録 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -219,12 +224,43 @@ paths:
       responses:
         '201':
           description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeCreateResponse'
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 権限不足 (管理者以外)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 社員IDまたはメールアドレス等の重複
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
           
   /admin/employees/{id}:
     put:
       summary: 社員情報の更新 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -245,6 +281,9 @@ paths:
       summary: 社員情報の削除 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -262,6 +301,9 @@ paths:
       description: 指定した社員のアカウントロック状態を解除し、失敗回数を0にリセットします。
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -278,6 +320,9 @@ paths:
       summary: ログイン試行回数の設定変更 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -289,10 +334,43 @@ paths:
               properties:
                 maxFailedAttempts:
                   type: integer
+                  minimum: 1
                   example: 5
       responses:
         '200':
           description: 設定変更成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  maxFailedAttempts:
+                    type: integer
+                    example: 5
+                  message:
+                    type: string
+                    example: ログイン失敗許容回数を変更しました。
+        '400':
+          description: 入力値が不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 権限不足 (管理者以外)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
@@ -543,3 +621,29 @@ components:
               endDate:
                 type: string
                 format: date
+    EmployeeCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        id:
+          type: string
+          format: uuid
+          example: 01907d72-b7b5-7798-8cd3-4927b233a0c2
+        message:
+          type: string
+          example: 社員を登録しました。
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: ログイン成功時に発行されるJWT Cookie (token)
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: AuthorizationヘッダーによるJWT (Bearer <token>)
+
