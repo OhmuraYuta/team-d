@@ -25,6 +25,13 @@ export interface EmployeeSummary {
   position: string | null;
   email: string;
   photoUrl: string | null;
+  /**
+   * 検索結果テーブルの「主なスキル」「資格」列で使用（Figmaデザイン準拠）。
+   * 注: AI_SPECIFICATION.md 4.2 の GET /employees のレスポンス例には含まれていない。
+   * バックエンドと要調整。実APIが返さない場合に備え、利用側は空配列フォールバックすること。
+   */
+  skills?: string[];
+  credentials?: string[];
 }
 
 /** 業務経験・プロジェクト履歴 */
@@ -87,6 +94,16 @@ export interface EmployeeSearchParams {
   credential?: string; // 部分一致
   project?: string; // 部分一致
   hobby?: string; // 部分一致
+
+  // --- 以下は Figmaデザインの検索条件フォームにあるが、仕様書のクエリパラメータに
+  //     定義が無い項目。バックエンドと要調整。 ---
+  email?: string; // 社内メール（部分一致）
+  experience?: string; // 業務経験（部分一致）
+  positionId?: string; // 役職（完全一致）
+
+  // --- ページネーション（デザインに表示件数・ページ送りがあるが仕様書に定義が無い） ---
+  page?: number; // 1始まり
+  limit?: number; // 1ページあたりの件数
 }
 
 /** GET /employees のレスポンス */
