@@ -258,6 +258,9 @@ paths:
       summary: 社員情報の更新 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
