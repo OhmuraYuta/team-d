@@ -44,10 +44,6 @@ paths:
                   success:
                     type: boolean
                     example: true
-                  token:
-                    type: string
-                    description: 認証用JWTトークン (Swagger UI等のテスト用)
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                   user:
                     $ref: '#/components/schemas/AuthUser'
           headers:

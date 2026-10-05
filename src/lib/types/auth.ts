@@ -15,7 +15,6 @@ export interface LoginRequestBody {
 
 export interface LoginSuccessResponse {
   success: true;
-  token?: string;
   user: AuthUser;
 }
 
