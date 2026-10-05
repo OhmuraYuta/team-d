@@ -281,6 +281,9 @@ paths:
       summary: 社員情報の削除 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -298,6 +301,9 @@ paths:
       description: 指定した社員のアカウントロック状態を解除し、失敗回数を0にリセットします。
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
