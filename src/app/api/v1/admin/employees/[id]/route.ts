@@ -326,3 +326,65 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     client.release();
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authResult = await requireAdmin(request);
+  if (authResult.errorResponse) return authResult.errorResponse;
+
+  const { id } = await params;
+  if (!uuidPattern.test(id)) {
+    return badRequest("社員IDは有効なUUIDで指定してください。");
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 社員行をロックし、削除対象へのメッセージ追加との競合を防ぐ。
+    const employee = await client.query("SELECT id FROM employees WHERE id = $1 FOR UPDATE", [id]);
+    if (employee.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return NextResponse.json<ErrorResponse>(
+        { success: false, error: "NOT_FOUND", message: "指定された社員が見つかりません。" },
+        { status: 404 }
+      );
+    }
+
+    await client.query(
+      "DELETE FROM thank_you_messages WHERE sender_id = $1 OR receiver_id = $1",
+      [id]
+    );
+    await client.query("DELETE FROM employees WHERE id = $1", [id]);
+    await client.query("COMMIT");
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (isDatabaseError(error) && error.code === "23503") {
+      return NextResponse.json<ErrorResponse>(
+        {
+          success: false,
+          error: "CONFLICT",
+          message: "関連するデータがあるため社員を削除できません。",
+        },
+        { status: 409 }
+      );
+    }
+
+    console.error("Employee deletion error:", error);
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        error: "INTERNAL_SERVER_ERROR",
+        message: "サーバー内部エラーが発生しました。",
+      },
+      { status: 500 }
+    );
+  } finally {
+    client.release();
+  }
+}
