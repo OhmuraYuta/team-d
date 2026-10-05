@@ -64,6 +64,9 @@ paths:
       description: 複合条件（AND条件）で社員を検索します。
       tags:
         - Employees
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: query
           name: employeeId
@@ -134,6 +137,9 @@ paths:
       description: 指定されたUUIDの社員の詳細情報を取得します。
       tags:
         - Employees
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
