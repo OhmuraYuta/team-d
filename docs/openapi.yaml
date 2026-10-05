@@ -314,6 +314,9 @@ paths:
       summary: ログイン試行回数の設定変更 (管理者機能)
       tags:
         - Admin
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -325,10 +328,43 @@ paths:
               properties:
                 maxFailedAttempts:
                   type: integer
+                  minimum: 1
                   example: 5
       responses:
         '200':
           description: 設定変更成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  maxFailedAttempts:
+                    type: integer
+                    example: 5
+                  message:
+                    type: string
+                    example: ログイン失敗許容回数を変更しました。
+        '400':
+          description: 入力値が不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 権限不足 (管理者以外)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   schemas:
