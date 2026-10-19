@@ -105,6 +105,33 @@ const MUTATIONS = [
     "CREATE INDEX idx_employees_last_name ON employees (last_name);",
     "",
   ],
+  [
+    "座標の 0〜100 制約が無い",
+    "db/init/01_schema.sql",
+    "x INTEGER NOT NULL CHECK (x BETWEEN 0 AND 100),",
+    "x INTEGER NOT NULL,",
+  ],
+  [
+    "役職IDで絞り込まない",
+    "src/app/api/v1/employees/route.ts",
+    "if (positionId) conditions.push(`e.position_id = ${addParam(positionId)}`);",
+    "",
+  ],
+  [
+    "座席一覧をフロアで絞り込まない",
+    "src/app/api/v1/seats/route.ts",
+    "if (floor) conditions.push(`s.floor = ${addParam(floor)}`);",
+    "",
+  ],
+  [
+    "座席一覧に割当社員を返さない",
+    "src/app/api/v1/seats/route.ts",
+    "employee: seat.employee,",
+    "employee: null,",
+  ],
+  // 注: seats/route.ts 内の認証チェックを外すミュータントは入れていない。
+  // ミドルウェア (proxy.ts) が先に 401 を返すため外から見た動きが変わらない「等価ミュータント」で、
+  // 仕様に基づくテストでは原理的に検出できない（検出できる必要もない）。
 ];
 
 const reportPath = join(tmpdir(), `teamd-mutation-${process.pid}.json`);
