@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { TOKEN_COOKIE_NAME, verifyJwt } from "@/lib/jwt";
 
-export function proxy(request: NextRequest) {
+function getCorsHeaders(request: NextRequest): Headers {
   const origin = request.headers.get("origin");
-
-  // CORS設定用のヘッダー
   const headers = new Headers();
   if (origin) {
     headers.set("Access-Control-Allow-Origin", origin);
@@ -17,22 +16,49 @@ export function proxy(request: NextRequest) {
     "Content-Type, Authorization, X-Requested-With, Accept"
   );
   headers.set("Access-Control-Max-Age", "86400");
+  return headers;
+}
 
-  // OPTIONS プリフライトリクエストの処理
+function withCorsHeaders(response: NextResponse, headers: Headers): NextResponse {
+  headers.forEach((value, key) => response.headers.set(key, value));
+  return response;
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === "OPTIONS") {
-    return new NextResponse(null, {
-      status: 204,
-      headers,
-    });
+    return withCorsHeaders(new NextResponse(null, { status: 204 }), corsHeaders);
   }
 
-  // 通常のリクエストを継続
-  const response = NextResponse.next();
-  headers.forEach((value, key) => {
-    response.headers.set(key, value);
-  });
+  // ログインAPIは未認証でも利用可能にする。
+  const isLoginRequest = pathname === "/api/v1/auth/login";
+  if (isLoginRequest) {
+    const response = NextResponse.next();
+    return withCorsHeaders(response, corsHeaders);
+  }
 
-  return response;
+  const cookieToken = request.cookies.get(TOKEN_COOKIE_NAME)?.value;
+  const authorization = request.headers.get("authorization");
+  const bearerToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const token = cookieToken || bearerToken;
+  const user = token ? await verifyJwt(token) : null;
+
+  if (!user) {
+    const response = NextResponse.json(
+      {
+        success: false,
+        error: "UNAUTHORIZED",
+        message: "認証が必要です。ログインしてください。",
+      },
+      { status: 401 }
+    );
+    return withCorsHeaders(response, corsHeaders);
+  }
+
+  const response = NextResponse.next();
+  return withCorsHeaders(response, corsHeaders);
 }
 
 export const config = {
