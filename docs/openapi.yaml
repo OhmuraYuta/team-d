@@ -164,6 +164,12 @@ paths:
             format: uuid
           description: 拠点ID (完全一致、UUIDv7)
         - in: query
+          name: positionId
+          schema:
+            type: string
+            format: uuid
+          description: 役職ID (完全一致、UUIDv7)
+        - in: query
           name: skill
           schema:
             type: string
