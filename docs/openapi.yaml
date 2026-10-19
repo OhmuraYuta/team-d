@@ -232,6 +232,9 @@ paths:
       description: 特定の社員に対してありがとうメッセージを送信します。
       tags:
         - Messages
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -271,6 +274,9 @@ paths:
       description: トップページ表示用に、最新のありがとうメッセージを5件取得します。
       tags:
         - Messages
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: 最新メッセージの配列
