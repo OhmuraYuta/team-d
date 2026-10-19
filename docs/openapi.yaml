@@ -58,6 +58,74 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /locations:
+    get:
+      summary: 拠点一覧の取得
+      description: フロアマップの拠点選択肢として利用する拠点一覧を取得します。
+      tags:
+        - Locations
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 拠点一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /seats:
+    get:
+      summary: 座席一覧の取得
+      description: 拠点・フロアで絞り込んだ座席と割当社員を取得します。フロアを省略すると、指定拠点に存在する全フロアの座席を返します。
+      tags:
+        - Seats
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: locationId
+          schema:
+            type: string
+            format: uuid
+          description: 拠点ID (UUIDv7)。省略時は全拠点が対象です。
+        - in: query
+          name: floor
+          schema:
+            type: string
+          description: "フロア名 (例: 3F)。"
+      responses:
+        '200':
+          description: 座席一覧。未割当の座席では employee が null になります。
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FloorMapSeat'
+        '400':
+          description: クエリパラメーターが不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /employees:
     get:
       summary: 社員情報の検索
@@ -380,6 +448,80 @@ paths:
 
 components:
   schemas:
+    Location:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 拠点ID (UUIDv7)
+        name:
+          type: string
+          example: 技術センター
+    FloorMapSeat:
+      type: object
+      required:
+        - id
+        - locationId
+        - floor
+        - seatCode
+        - x
+        - y
+        - employee
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 座席ID (UUIDv7)
+        locationId:
+          type: string
+          format: uuid
+          description: 拠点ID (UUIDv7)
+        floor:
+          type: string
+          example: 3F
+        seatCode:
+          type: string
+          example: A-12
+        x:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: フロアマップ上のX座標 (割合%)
+          example: 25
+        y:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: フロアマップ上のY座標 (割合%)
+          example: 12
+        employee:
+          type: object
+          nullable: true
+          description: 座席の割当社員。未割当の場合は null。
+          required:
+            - id
+            - employeeId
+            - lastName
+            - firstName
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: 社員ID (UUIDv7)
+            employeeId:
+              type: string
+              description: ログイン用の社員ID
+              example: EMP001
+            lastName:
+              type: string
+              example: 大村
+            firstName:
+              type: string
+              example: 悠太
     AuthUser:
       type: object
       properties:
@@ -652,4 +794,3 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: AuthorizationヘッダーによるJWT (Bearer <token>)
-
