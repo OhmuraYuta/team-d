@@ -89,6 +89,7 @@ export interface EmployeeSearchParams {
   firstName?: string; // 部分一致
   departmentId?: string; // 完全一致
   locationId?: string; // 完全一致
+  positionId?: string; // 完全一致
   skill?: string; // 部分一致
   credential?: string; // 部分一致
   project?: string; // 部分一致

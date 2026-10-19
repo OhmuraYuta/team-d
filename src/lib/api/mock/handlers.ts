@@ -134,6 +134,7 @@ export function mockSearchEmployees(params: EmployeeSearchParams): EmployeeSearc
       if (params.employeeId && e.employeeId !== params.employeeId) return false;
       if (params.departmentId && e.departmentId !== params.departmentId) return false;
       if (params.locationId && e.locationId !== params.locationId) return false;
+      if (params.positionId && e.positionId !== params.positionId) return false;
       if (!includes(e.lastName, params.lastName)) return false;
       if (!includes(e.firstName, params.firstName)) return false;
       if (
