@@ -56,6 +56,51 @@ async function seed() {
       "部長",
     ]);
 
+    console.log("Inserting floor map seats...");
+    const seatDefinitions = [
+      // 本社 1F
+      { locationId: locHqId, floor: "1F", seatCode: "A-01", x: 20, y: 25 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-02", x: 35, y: 25 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-03", x: 50, y: 25 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-01", x: 20, y: 60 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-02", x: 35, y: 60 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-03", x: 50, y: 60 },
+      // 本社 2F
+      { locationId: locHqId, floor: "2F", seatCode: "C-01", x: 25, y: 30 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-02", x: 40, y: 30 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-03", x: 55, y: 30 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-01", x: 25, y: 65 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-02", x: 40, y: 65 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-03", x: 55, y: 65 },
+      // 技術センター 3F
+      { locationId: locTechId, floor: "3F", seatCode: "A-12", x: 25, y: 20 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-13", x: 40, y: 20 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-14", x: 55, y: 20 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-01", x: 25, y: 60 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-02", x: 40, y: 60 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-03", x: 55, y: 60 },
+    ].map((seat) => ({ ...seat, id: uuidv7() }));
+
+    const seatParams = seatDefinitions.flatMap((seat) => [
+      seat.id,
+      seat.locationId,
+      seat.floor,
+      seat.seatCode,
+      seat.x,
+      seat.y,
+    ]);
+    const seatValues = seatDefinitions
+      .map((_, index) => {
+        const offset = index * 6;
+        return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6})`;
+      })
+      .join(", ");
+    await client.query(
+      `INSERT INTO seats (id, location_id, floor, seat_code, x, y) VALUES ${seatValues}`,
+      seatParams
+    );
+    const seatIdByCode = new Map(seatDefinitions.map((seat) => [seat.seatCode, seat.id]));
+
     console.log("Inserting employees...");
     const passAdmin = await bcrypt.hash("SecurePassword123", 10);
     const passEmp = await bcrypt.hash("Password123!", 10);
@@ -66,21 +111,23 @@ async function seed() {
     await client.query(
       `INSERT INTO employees (
         id, login_id, password_hash, last_name, first_name, email, role,
-        department_id, location_id, position_id, failed_attempts, is_locked
+        department_id, location_id, position_id, seat_id, failed_attempts, is_locked
       ) VALUES
-      ($1, 'EMP001', $2, '大村', '悠太', 'yuta.ohmura@example.com', 'ADMIN', $3, $4, $5, 0, FALSE),
-      ($6, 'EMP002', $7, '青木', '大隼', 'hiroto.aoki@example.com', 'EMPLOYEE', $8, $9, $10, 0, FALSE)`,
+      ($1, 'EMP001', $2, '大村', '悠太', 'yuta.ohmura@example.com', 'ADMIN', $3, $4, $5, $6, 0, FALSE),
+      ($7, 'EMP002', $8, '青木', '大隼', 'hiroto.aoki@example.com', 'EMPLOYEE', $9, $10, $11, $12, 0, FALSE)`,
       [
         empAdminId,
         passAdmin,
         deptTechId,
         locTechId,
         posChiefId,
+        seatIdByCode.get("A-12"),
         empRegularId,
         passEmp,
         deptTechId,
         locTechId,
         posStaffId,
+        seatIdByCode.get("A-13"),
       ]
     );
 
