@@ -1,7 +1,6 @@
 // マスタ・座席の参照API。
-// 注: 部署/拠点/役職/座席の一覧取得は AI_SPECIFICATION.md のAPI節に明記がないため、
-// 実API側のパスは暫定。バックエンドと要調整（検索フォームやフロアマップで必要）。
-import type { MasterItem, Seat } from "@/lib/types";
+// 拠点・座席一覧APIは docs/openapi.yaml の定義に準拠。
+import type { FloorMapSeat, MasterItem } from "@/lib/types";
 import { apiFetch, toQueryString, withMock } from "./client";
 import {
   mockGetDepartments,
@@ -32,9 +31,9 @@ export async function getPositions(): Promise<MasterItem[]> {
 }
 
 /** 拠点・フロアで座席を絞り込む（フロアマップ・座席管理で使用）。 */
-export async function getSeats(locationId?: string, floor?: string): Promise<Seat[]> {
+export async function getSeats(locationId?: string, floor?: string): Promise<FloorMapSeat[]> {
   return withMock(
     () => mockGetSeats(locationId, floor),
-    () => apiFetch<Seat[]>(`/seats${toQueryString({ locationId, floor })}`)
+    () => apiFetch<FloorMapSeat[]>(`/seats${toQueryString({ locationId, floor })}`)
   );
 }
