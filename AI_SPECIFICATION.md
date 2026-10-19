@@ -56,8 +56,8 @@ CREATE TABLE seats (
     location_id UUID NOT NULL,
     floor VARCHAR(50) NOT NULL, -- 例: '3F'
     seat_code VARCHAR(50) NOT NULL, -- 座席番号 (例: 'A-01')
-    x INTEGER NOT NULL, -- フロアマップ上のX座標 (割合%)
-    y INTEGER NOT NULL, -- フロアマップ上のY座標 (割合%)
+    x INTEGER NOT NULL CHECK (x BETWEEN 0 AND 100), -- フロアマップ上のX座標 (割合%, 0〜100)
+    y INTEGER NOT NULL CHECK (y BETWEEN 0 AND 100), -- フロアマップ上のY座標 (割合%, 0〜100)
     UNIQUE (location_id, floor, seat_code),
     FOREIGN KEY(location_id) REFERENCES locations(id) ON DELETE CASCADE
 );
@@ -263,8 +263,8 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
       "id": "01907d74-e3ba-7abc-bcde-555555555555",
       "seatCode": "A-12",
       "floor": "3F",
-      "x": 250,
-      "y": 120
+      "x": 25,
+      "y": 12
     }
   }
   ```
