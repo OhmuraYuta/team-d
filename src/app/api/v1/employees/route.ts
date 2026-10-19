@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   const firstName = getQueryParam(request, "firstName");
   const departmentId = getQueryParam(request, "departmentId");
   const locationId = getQueryParam(request, "locationId");
+  const positionId = getQueryParam(request, "positionId");
   const skill = getQueryParam(request, "skill");
   const credential = getQueryParam(request, "credential");
   const project = getQueryParam(request, "project");
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
   for (const [name, value] of [
     ["departmentId", departmentId],
     ["locationId", locationId],
+    ["positionId", positionId],
   ] as const) {
     if (value && !uuidV7Pattern.test(value)) {
       return NextResponse.json<ErrorResponse>(
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
   if (firstName) addPartialMatch("e.first_name", firstName);
   if (departmentId) conditions.push(`e.department_id = ${addParam(departmentId)}`);
   if (locationId) conditions.push(`e.location_id = ${addParam(locationId)}`);
+  if (positionId) conditions.push(`e.position_id = ${addParam(positionId)}`);
 
   if (skill) {
     const parameter = addParam(skill);

@@ -10,10 +10,10 @@ import type {
   EmployeeSearchResult,
   EmployeeSummary,
   ErrorResponse,
+  FloorMapSeat,
   LoginRequest,
   LoginSuccessResponse,
   MasterItem,
-  Seat,
   SendMessageRequest,
   SendMessageResponse,
   ThankYouMessage,
@@ -134,6 +134,7 @@ export function mockSearchEmployees(params: EmployeeSearchParams): EmployeeSearc
       if (params.employeeId && e.employeeId !== params.employeeId) return false;
       if (params.departmentId && e.departmentId !== params.departmentId) return false;
       if (params.locationId && e.locationId !== params.locationId) return false;
+      if (params.positionId && e.positionId !== params.positionId) return false;
       if (!includes(e.lastName, params.lastName)) return false;
       if (!includes(e.firstName, params.firstName)) return false;
       if (
@@ -199,10 +200,23 @@ export function mockGetPositions(): MasterItem[] {
 }
 
 // ---- 座席 ----
-export function mockGetSeats(locationId?: string, floor?: string): Seat[] {
+export function mockGetSeats(locationId?: string, floor?: string): FloorMapSeat[] {
   return mockSeats
     .filter((s) => (!locationId || s.locationId === locationId) && (!floor || s.floor === floor))
-    .map(({ id, seatCode, floor, x, y }) => ({ id, seatCode, floor, x, y }));
+    .map((seat) => {
+      const employee = mockEmployees.find((candidate) => candidate.seatId === seat.id);
+      return {
+        ...seat,
+        employee: employee
+          ? {
+              id: employee.id,
+              employeeId: employee.employeeId,
+              lastName: employee.lastName,
+              firstName: employee.firstName,
+            }
+          : null,
+      };
+    });
 }
 
 // ---- 管理者機能 ----
