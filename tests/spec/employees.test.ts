@@ -19,6 +19,7 @@ beforeEach(async () => {
   const center = await insertMaster("locations", "技術センター");
   const hq = await insertMaster("locations", "本社");
   const chief = await insertMaster("positions", "チーフエンジニア");
+  const manager = await insertMaster("positions", "課長");
   const react = await insertMaster("skills", "React");
   const ts = await insertMaster("skills", "TypeScript");
   const excel = await insertMaster("skills", "Excel");
@@ -28,8 +29,9 @@ beforeEach(async () => {
     locationId: center,
     floor: "3F",
     seatCode: "A-12",
-    x: 250,
-    y: 120,
+    // 座標は割合% (0〜100)。値は仕様書 4.2 のレスポンス例と同じ
+    x: 25,
+    y: 12,
   });
 
   const ohmura = await insertEmployee({
@@ -72,10 +74,27 @@ beforeEach(async () => {
     firstName: "花子",
     departmentId: sales,
     locationId: hq,
+    positionId: manager,
     skillIds: [excel],
   });
 
-  ids = { dev, sales, center, hq, react, ts, excel, ap, aws, seat, ohmura, aoki, omori };
+  ids = {
+    dev,
+    sales,
+    center,
+    hq,
+    chief,
+    manager,
+    react,
+    ts,
+    excel,
+    ap,
+    aws,
+    seat,
+    ohmura,
+    aoki,
+    omori,
+  };
   cookie = await loginAs("EMP002");
 });
 
@@ -144,6 +163,16 @@ describe("[4.2] GET /employees 検索条件", () => {
 
   it("locationId は完全一致（UUIDv7）", async () => {
     expect(found((await search(`?locationId=${ids.hq}`)).body)).toEqual(["EMP002", "EMP010"]);
+  });
+
+  it("positionId は完全一致（UUIDv7）", async () => {
+    expect(found((await search(`?positionId=${ids.chief}`)).body)).toEqual(["EMP001"]);
+    expect(found((await search(`?positionId=${ids.manager}`)).body)).toEqual(["EMP010"]);
+  });
+
+  it("positionId も他の条件と AND（課長 かつ 部署=技術開発部 → 該当なし）", async () => {
+    const { body } = await search(`?positionId=${ids.manager}&departmentId=${ids.dev}`);
+    expect(found(body)).toEqual([]);
   });
 
   it("skill は名前の部分一致（「script」→ TypeScript を持つ大村）", async () => {
@@ -225,7 +254,7 @@ describe("[4.2] GET /employees/:id 社員詳細", () => {
       ],
       selfPR: "フルスタックでのシステム開発が得意です。",
       hobbyInfo: "キャンプ、サイクリング",
-      seat: { id: ids.seat, seatCode: "A-12", floor: "3F", x: 250, y: 120 },
+      seat: { id: ids.seat, seatCode: "A-12", floor: "3F", x: 25, y: 12 },
     });
   });
 
