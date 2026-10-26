@@ -51,6 +51,12 @@ export interface Seat {
   y: number; // フロアマップ上のY座標
 }
 
+/** フロアマップ一覧の座席（割当社員を含む） */
+export interface FloorMapSeat extends Seat {
+  locationId: string;
+  employee: Pick<EmployeeSummary, "id" | "employeeId" | "lastName" | "firstName"> | null;
+}
+
 /** 社員詳細（GET /employees/:id） */
 export interface EmployeeDetail {
   id: string;
@@ -90,6 +96,7 @@ export interface EmployeeSearchParams {
   firstName?: string; // 部分一致
   departmentId?: string; // 完全一致
   locationId?: string; // 完全一致
+  positionId?: string; // 完全一致
   skill?: string; // 部分一致
   credential?: string; // 部分一致
   project?: string; // 部分一致
@@ -145,8 +152,7 @@ export interface SendMessageResponse {
 }
 
 // ---- マスタ（検索フォームのドロップダウン等で使用） ----
-// 注: AI_SPECIFICATION.md のAPI節にはマスタ取得エンドポイントの明記がないため、
-// フロント都合の暫定的な形。バックエンドと要調整（下記 admin 系も同様）。
+// 部署・役職など、OpenAPIで未定義のマスタ取得形状はフロント都合の暫定型。
 
 export interface MasterItem {
   id: string;
