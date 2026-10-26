@@ -57,11 +57,11 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return body as T;
 }
 
-/** クエリ文字列を組み立てる（空値は除外）。 */
-export function toQueryString(params: Record<string, string | undefined>): string {
-  const entries = Object.entries(params).filter(
-    (entry): entry is [string, string] => entry[1] !== undefined && entry[1] !== ""
-  );
+/** クエリ文字列を組み立てる（空値は除外。数値も受け付ける）。 */
+export function toQueryString(params: Record<string, string | number | undefined>): string {
+  const entries = Object.entries(params)
+    .filter((entry) => entry[1] !== undefined && entry[1] !== "")
+    .map(([key, value]) => [key, String(value)] as [string, string]);
   const qs = new URLSearchParams(entries).toString();
   return qs ? `?${qs}` : "";
 }
