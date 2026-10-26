@@ -39,26 +39,27 @@ export function SearchResults({
 
   return (
     <section className="rounded-lg border border-input bg-card shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 lg:px-5">
+      {/* スマホ: 件数の横に表示件数を並べ、ページ送りは下部のみ。PC: 右端に表示件数 + ページ送り */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 lg:gap-x-[30px] lg:px-5">
         <div className="flex items-center gap-5">
           <h2 className="text-[15px]">検索結果</h2>
           <span className="text-xs text-black/50">{totalCount}件</span>
         </div>
-        <div className="flex items-center gap-4 lg:gap-[30px]">
-          <label className="flex items-center gap-1 text-xs">
-            表示件数：
-            <select
-              value={limit}
-              onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="rounded-[5px] border border-input bg-transparent py-1.5 pr-1 pl-2.5 text-[10px]"
-            >
-              {LIMIT_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}件
-                </option>
-              ))}
-            </select>
-          </label>
+        <label className="flex items-center gap-1 text-xs lg:ml-auto">
+          表示件数：
+          <select
+            value={limit}
+            onChange={(e) => onLimitChange(Number(e.target.value))}
+            className="rounded-[5px] border border-input bg-transparent py-1.5 pr-1 pl-2.5 text-[10px]"
+          >
+            {LIMIT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}件
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="hidden lg:block">
           <Pagination page={page} totalPages={totalPages} onChange={onPageChange} compact />
         </div>
       </div>

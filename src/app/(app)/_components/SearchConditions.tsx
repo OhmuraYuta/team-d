@@ -10,6 +10,25 @@ interface SearchConditionsProps {
   onSearch: (params: EmployeeSearchParams) => void;
 }
 
+/**
+ * 検索項目の幅（PC = lg以上）。Figma PC版の幅に比例させて伸縮する。
+ * basis = Figma幅の8割、grow = Figma幅 にすることで、どの画面幅でも比率を保つ。
+ *   姓・名・社員ID 100px < 部署・拠点・役職 145px < 社内メール 230px
+ */
+const W = {
+  s: "lg:basis-[80px] lg:grow-[100]",
+  m: "lg:basis-[116px] lg:grow-[145]",
+  l: "lg:basis-[184px] lg:grow-[230]",
+  experience: "lg:basis-[173px] lg:grow-[216]",
+  project: "lg:basis-[184px] lg:grow-[230]",
+  skill: "lg:basis-[123px] lg:grow-[154]",
+  credential: "lg:basis-[186px] lg:grow-[232]",
+  hobby: "lg:basis-[184px] lg:grow-[230]",
+};
+
+/** 1行分のレイアウト。スマホは1列、タブレットは2列、PCは幅比率つきの横並び */
+const ROW = "grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:flex lg:flex-wrap";
+
 /** フォームの初期値（空文字 = 条件なし） */
 const EMPTY = {
   lastName: "",
@@ -107,91 +126,95 @@ export function SearchConditions({ onSearch }: SearchConditionsProps) {
 
       {open && (
         <div className="border-t border-input px-4 py-4">
-          <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            <Field label="姓">
-              <TextInput
-                value={form.lastName}
-                onChange={(v) => update("lastName", v)}
-                placeholder="例) 山田"
-              />
-            </Field>
-            <Field label="名">
-              <TextInput
-                value={form.firstName}
-                onChange={(v) => update("firstName", v)}
-                placeholder="例) 太郎"
-              />
-            </Field>
-            <Field label="社員ID">
-              <TextInput
-                value={form.employeeId}
-                onChange={(v) => update("employeeId", v)}
-                placeholder="例) E00000"
-              />
-            </Field>
-            <Field label="部署">
-              <Select
-                value={form.departmentId}
-                onChange={(v) => update("departmentId", v)}
-                options={departments}
-              />
-            </Field>
-            <Field label="拠点">
-              <Select
-                value={form.locationId}
-                onChange={(v) => update("locationId", v)}
-                options={locations}
-              />
-            </Field>
-            <Field label="役職">
-              <Select
-                value={form.positionId}
-                onChange={(v) => update("positionId", v)}
-                options={positions}
-              />
-            </Field>
-            <Field label="社内メール">
-              <TextInput
-                value={form.email}
-                onChange={(v) => update("email", v)}
-                placeholder="例) taro.yamaga@company.co.jp"
-              />
-            </Field>
-            <Field label="業務経験">
-              <TextInput
-                value={form.experience}
-                onChange={(v) => update("experience", v)}
-                placeholder="例) 要件定義、設計"
-              />
-            </Field>
-            <Field label="過去担当プロジェクト" className="xl:col-span-2">
-              <TextInput
-                value={form.project}
-                onChange={(v) => update("project", v)}
-                placeholder="例) 基幹システム刷新プロジェクト"
-              />
-            </Field>
-            <Field label="スキル">
-              <TextInput
-                value={form.skill}
-                onChange={(v) => update("skill", v)}
-                placeholder="例) Java、 Python"
-              />
-            </Field>
-            <Field label="資格">
-              <TextInput
-                value={form.credential}
-                onChange={(v) => update("credential", v)}
-                placeholder="例) 基本情報技術者試験"
-              />
-            </Field>
-            <Field label="趣味情報">
-              <TextInput
-                value={form.hobby}
-                onChange={(v) => update("hobby", v)}
-                placeholder="例) ランニング、旅行"
-              />
-            </Field>
+          <div className="flex flex-col gap-4">
+            <div className={ROW}>
+              <Field label="姓" className={W.s}>
+                <TextInput
+                  value={form.lastName}
+                  onChange={(v) => update("lastName", v)}
+                  placeholder="例) 山田"
+                />
+              </Field>
+              <Field label="名" className={W.s}>
+                <TextInput
+                  value={form.firstName}
+                  onChange={(v) => update("firstName", v)}
+                  placeholder="例) 太郎"
+                />
+              </Field>
+              <Field label="社員ID" className={W.s}>
+                <TextInput
+                  value={form.employeeId}
+                  onChange={(v) => update("employeeId", v)}
+                  placeholder="例) E00000"
+                />
+              </Field>
+              <Field label="部署" className={W.m}>
+                <Select
+                  value={form.departmentId}
+                  onChange={(v) => update("departmentId", v)}
+                  options={departments}
+                />
+              </Field>
+              <Field label="拠点" className={W.m}>
+                <Select
+                  value={form.locationId}
+                  onChange={(v) => update("locationId", v)}
+                  options={locations}
+                />
+              </Field>
+              <Field label="役職" className={W.m}>
+                <Select
+                  value={form.positionId}
+                  onChange={(v) => update("positionId", v)}
+                  options={positions}
+                />
+              </Field>
+              <Field label="社内メール" className={W.l}>
+                <TextInput
+                  value={form.email}
+                  onChange={(v) => update("email", v)}
+                  placeholder="例) taro.yamaga@company.co.jp"
+                />
+              </Field>
+            </div>
+            <div className={ROW}>
+              <Field label="業務経験" className={W.experience}>
+                <TextInput
+                  value={form.experience}
+                  onChange={(v) => update("experience", v)}
+                  placeholder="例) 要件定義、設計"
+                />
+              </Field>
+              <Field label="過去担当プロジェクト" className={W.project}>
+                <TextInput
+                  value={form.project}
+                  onChange={(v) => update("project", v)}
+                  placeholder="例) 基幹システム刷新プロジェクト"
+                />
+              </Field>
+              <Field label="スキル" className={W.skill}>
+                <TextInput
+                  value={form.skill}
+                  onChange={(v) => update("skill", v)}
+                  placeholder="例) Java、 Python"
+                />
+              </Field>
+              <Field label="資格" className={W.credential}>
+                <TextInput
+                  value={form.credential}
+                  onChange={(v) => update("credential", v)}
+                  placeholder="例) 基本情報技術者試験"
+                />
+              </Field>
+              <Field label="趣味情報" className={W.hobby}>
+                <TextInput
+                  value={form.hobby}
+                  onChange={(v) => update("hobby", v)}
+                  placeholder="例) ランニング、旅行"
+                />
+              </Field>
+            </div>
           </div>
 
           {/* PCは下部にボタン */}

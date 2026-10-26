@@ -11,6 +11,9 @@ import { cn } from "@/lib/utils";
  * PC: 最新5件を横並びのセルで表示。スマホ: 1件ずつ + ドットインジケータ。
  * 仕様書どおりフェードインのマイクロアニメーションを伴って表示する。
  */
+/** 表示件数（仕様書 5.2: 最新5件） */
+const MAX_MESSAGES = 5;
+
 export function ThankYouMessages() {
   const [messages, setMessages] = useState<ThankYouMessage[] | null>(null);
   const [current, setCurrent] = useState(0);
@@ -29,11 +32,13 @@ export function ThankYouMessages() {
     };
   }, []);
 
+  const shown = (messages ?? []).slice(0, MAX_MESSAGES);
+
   return (
     <section className="rounded-lg border border-input bg-card shadow-card">
       <div className="flex items-center justify-between px-3 py-2.5">
         <h2 className="text-base">ありがとうメッセージ</h2>
-        <span className="text-xs">表示件数：{messages?.length ?? 5}件</span>
+        <span className="text-xs">表示件数：{MAX_MESSAGES}件</span>
       </div>
 
       {messages === null ? (
@@ -47,11 +52,11 @@ export function ThankYouMessages() {
       ) : (
         <>
           {/* PC: 横並び */}
-          <ul className="hidden border-t border-input lg:flex">
-            {messages.map((m) => (
+          <ul className="hidden grid-cols-5 border-t border-input lg:grid">
+            {shown.map((m) => (
               <li
                 key={m.id}
-                className="flex h-[52px] flex-1 animate-fade-in items-center justify-center gap-5 border-r border-input px-2 last:border-r-0"
+                className="flex h-[52px] min-w-0 animate-fade-in items-center gap-3 overflow-hidden border-r border-input px-3 last:border-r-0"
               >
                 <MessageCell message={m} />
               </li>
@@ -62,12 +67,12 @@ export function ThankYouMessages() {
           <div className="border-t border-input lg:hidden">
             <div
               className="flex h-[64px] animate-fade-in items-center gap-5 px-4"
-              key={messages[current]?.id}
+              key={shown[current]?.id}
             >
-              <MessageCell message={messages[current]} />
+              <MessageCell message={shown[current]} />
             </div>
             <div className="flex items-center justify-center gap-2 pb-2.5">
-              {messages.map((m, i) => (
+              {shown.map((m, i) => (
                 <button
                   key={m.id}
                   type="button"
@@ -91,13 +96,23 @@ export function ThankYouMessages() {
 function MessageCell({ message }: { message: ThankYouMessage }) {
   return (
     <>
-      <div className="flex shrink-0 items-center gap-2.5">
-        <span className="h-[43px] w-[50px] shrink-0 rounded-[5px] bg-[#d9d9d9]" aria-hidden />
-        <span className="text-[10px] whitespace-nowrap">{message.senderName}</span>
+      <div className="flex shrink-0 items-center gap-2">
+        {/* 幅の狭いPC（xl未満）ではセルが窮屈になるためアバターを省略し、名前と本文を優先する */}
+        <span
+          className="hidden h-[43px] w-[50px] shrink-0 rounded-[5px] bg-[#d9d9d9] max-lg:block xl:block"
+          aria-hidden
+        />
+        <span className="block max-w-[5.5em] truncate text-[10px]" title={message.senderName}>
+          {message.senderName}
+        </span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[10px]">{message.receiverName}へ</p>
-        <p className="truncate text-[8px] text-muted-foreground">{message.content}</p>
+        <p className="truncate text-[10px]" title={`${message.receiverName}へ`}>
+          {message.receiverName}へ
+        </p>
+        <p className="truncate text-[8px] text-muted-foreground" title={message.content}>
+          {message.content}
+        </p>
       </div>
     </>
   );
