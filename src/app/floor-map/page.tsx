@@ -199,7 +199,7 @@ function EmployeeCard({ employee, seatCode }: { employee: EmployeeDetail | null;
         <div className="flex h-[150px] w-[150px] items-center justify-center overflow-hidden rounded-[10px] border border-black text-[24px]">
         {employee?.photoUrl ? <img src={employee.photoUrl} alt={displayName} className="h-full w-full object-cover" /> : "顔写真"}
         </div>
-        <div className="min-w-0 text-center">
+        <div className="min-w-0">
           <p className="text-[16px]">座席番号</p><p className="text-[24px]">{seatCode || "—"}</p>
           <p className="mt-[8px] whitespace-nowrap text-[20px]">{displayName}</p>
           <p className="mt-[12px] text-left text-[16px]">社員ID<br /><span className="text-[12px]">{employee?.employeeId ?? "—"}</span></p>
