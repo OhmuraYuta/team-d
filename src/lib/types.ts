@@ -106,7 +106,6 @@ export interface EmployeeSearchParams {
   //     定義が無い項目。バックエンドと要調整。 ---
   email?: string; // 社内メール（部分一致）
   experience?: string; // 業務経験（部分一致）
-  positionId?: string; // 役職（完全一致）
 
   // --- ページネーション（デザインに表示件数・ページ送りがあるが仕様書に定義が無い） ---
   page?: number; // 1始まり
