@@ -221,7 +221,7 @@ function EmployeeCard({ employee, seatCode }: { employee: EmployeeDetail | null;
       </div>
       <button type="button" className="relative mt-auto h-[40px] w-full rounded-[5px] bg-[#1750a8] text-[16px] font-bold text-white">
         <span>社員の詳細を見る</span>
-        <span aria-hidden="true" className="absolute right-[17px] top-1/2 h-[9px] w-[9px] -translate-y-1/2 rotate-45 border-r-2 border-t-2 border-white" />
+        <span aria-hidden="true" className="absolute right-[17px] top-1/2 h-[9px] w-[9px] -translate-y-1/2 rotate-45 rounded-[1px] border-r-2 border-t-2 border-white" />
       </button>
     </aside>
   );
