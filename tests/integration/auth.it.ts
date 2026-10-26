@@ -78,11 +78,15 @@ describe("[6.1] 保護されたAPIは、未認証なら 401", () => {
     "/api/v1/messages/latest",
   ];
 
-  it.each(protectedApis)(
-    "未ログインで GET %s → 401（openapi の ErrorResponse 形式）",
+  it.each(protectedApis)("未ログインで GET %s → 401", async (path) => {
+    expect((await new Client().get(path)).status).toBe(401);
+  });
+
+  // 401 のレスポンスの形 (ErrorResponse) が openapi に定義されているのは /locations と /seats だけ
+  it.each(["/api/v1/locations", "/api/v1/seats"])(
+    "[openapi] %s の 401 は ErrorResponse { success: false, error, message } の形",
     async (path) => {
       const res = await new Client().get(path);
-      expect(res.status).toBe(401);
       expect(res.body).toMatchObject({
         success: false,
         error: expect.any(String),

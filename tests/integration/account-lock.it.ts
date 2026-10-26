@@ -53,7 +53,16 @@ describe("[6.1] デフォルト5回の失敗でロック → [4.4] 管理者が�
     expect(res.status).toBe(200);
   });
 
-  it("5. [4.4] 解除で失敗回数が0に戻り、正しいパスワードでログインして検索も使える", async () => {
+  // ログインに成功すると失敗回数はどのみちリセットされるので、先に「解除直後の回数が0か」を確かめる。
+  // 回数が残っていれば（5回のまま）、次の1回の失敗でロックされる
+  it("5. [4.4] 解除で失敗回数が0に戻る（解除直後に4回失敗してもロックされない）", async () => {
+    for (let i = 1; i <= 4; i++) {
+      const res = await tryLogin("wrong");
+      expect(res.body.error, `解除後 ${i}回目`).not.toBe("ACCOUNT_LOCKED");
+    }
+  });
+
+  it("6. [4.4] 解除後は、正しいパスワードでログインして検索も使える", async () => {
     const tanaka = new Client();
     expect((await tanaka.login("EMP001", PASSWORD)).status).toBe(200);
     expect((await tanaka.get("/api/v1/employees")).status).toBe(200);

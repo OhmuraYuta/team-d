@@ -80,23 +80,34 @@ describe("[5.1][6.1] 画面からログインすると、実APIで認証され H
   });
 });
 
+/**
+ * エラー表示エリア。仕様 5.1 は「エラー表示エリア」があることだけを定めており、見た目や文言は定めていない。
+ * そこで画面の作りに依存しないよう、支援技術向けの役割 (role) が dialog か alert の要素を「エラー表示エリア」とみなす。
+ * Next.js はページ遷移を読み上げるための空で見えない role="alert" 要素を自動で置くので、
+ * 「表示されていて、文字が入っているもの」に絞る。
+ */
+const errorArea = () =>
+  page.locator('[role="dialog"]:visible, [role="alert"]:visible').filter({ hasText: /\S/ });
+
 describe("[5.1] エラー表示エリア", () => {
-  it("パスワードを間違えると、画面にエラーが表示され、Cookie は保存されない", async () => {
+  it("パスワードを間違えると、エラー表示エリアにメッセージが出て、Cookie は保存されない", async () => {
     await openLogin();
     await submit("EMP001", "wrong-password");
-    await page.getByText("社員IDまたはパスワードが正しくありません").waitFor();
+    await errorArea().first().waitFor();
+    expect((await errorArea().first().textContent())?.trim()).not.toBe("");
     expect((await page.context().cookies()).find((c) => c.name === "token")).toBeUndefined();
   });
 
   it("5回連続で失敗すると「アカウントがロックされました。管理者に連絡してください」と表示される", async () => {
-    await openLogin();
     for (let i = 0; i < 5; i++) {
+      // ロック状態はサーバー側で管理されるので、毎回ログイン画面を開き直して入力する（画面の閉じ方に依存しない）
+      await openLogin();
       await submit("EMP001", "wrong-password");
-      await page.getByRole("button", { name: "戻る" }).waitFor();
-      if (i < 4) await page.getByRole("button", { name: "戻る" }).click();
+      await errorArea().first().waitFor();
     }
-    const shown = await page.getByRole("dialog").textContent();
-    expect(shown).toContain("アカウントがロックされました。管理者に連絡してください");
+    expect(await errorArea().first().textContent()).toContain(
+      "アカウントがロックされました。管理者に連絡してください"
+    );
   });
 });
 
