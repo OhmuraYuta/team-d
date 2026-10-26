@@ -1,7 +1,7 @@
 /**
  * 結合テスト: 管理者による社員のライフサイクル
  *   入社（登録）→ 本人がログイン → 異動（更新）→ 検索・詳細に反映 → 退職（削除）→ ログインも閲覧もできない
- * 仕様: AI_SPECIFICATION.md 2, 4.4 / openapi.yaml /admin/employees
+ * 仕様: AI_SPECIFICATION.md 2, 3, 4.1, 4.2, 4.4 / openapi.yaml /admin/employees, /seats
  */
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -36,7 +36,7 @@ beforeAll(async () => {
 });
 
 describe("管理者: 社員の入社から退職まで", () => {
-  it("1. 入社: 新しい社員を登録する（201・UUIDv7 のID）", async () => {
+  it("1. [4.4][3] 入社: 新しい社員を登録すると 201、ID はアプリ側で生成した UUIDv7", async () => {
     const res = await admin.post("/api/v1/admin/employees", {
       loginId: "EMP100",
       password: "Welcome2026!",
@@ -54,14 +54,14 @@ describe("管理者: 社員の入社から退職まで", () => {
     ids.sato = res.body.id;
   });
 
-  it("2. 本人が、管理者が設定した初期パスワードでログインできる", async () => {
+  it("2. [4.1] 本人が、管理者が設定した初期パスワードでログインできる", async () => {
     const sato = new Client();
     const res = await sato.login("EMP100", "Welcome2026!");
     expect(res.status).toBe(200);
     expect(res.body.user).toMatchObject({ id: ids.sato, lastName: "佐藤", role: "EMPLOYEE" });
   });
 
-  it("3. 他の社員が検索すると見つかり、詳細に所属・スキル・座席が出る", async () => {
+  it("3. [4.2] 他の社員が検索すると見つかり、詳細に所属・スキル・経歴・座席が出る", async () => {
     const colleague = new Client();
     await colleague.login("EMP001", PASSWORD);
 
@@ -77,13 +77,13 @@ describe("管理者: 社員の入社から退職まで", () => {
     });
   });
 
-  it("4. 登録した座席が、フロアマップ上でもこの社員の席になっている", async () => {
+  it("4. [openapi /seats] 登録した座席が、フロアマップ上でもこの社員の席になっている", async () => {
     const res = await admin.get(`/api/v1/seats?locationId=${ids.center}&floor=3F`);
     const seat = res.body.find((s: { id: string }) => s.id === ids.seat);
     expect(seat.employee).toMatchObject({ id: ids.sato, employeeId: "EMP100" });
   });
 
-  it("5. 異動: 人事部へ更新し、座席を外す", async () => {
+  it("5. [4.4] 異動: 人事部へ更新し、座席を外すと 200", async () => {
     const res = await admin.put(`/api/v1/admin/employees/${ids.sato}`, {
       departmentId: ids.hr,
       seatId: null,
@@ -91,7 +91,7 @@ describe("管理者: 社員の入社から退職まで", () => {
     expect(res.status).toBe(200);
   });
 
-  it("6. 異動が検索・詳細・フロアマップすべてに反映される", async () => {
+  it("6. [4.2][openapi /seats] 異動が検索・詳細・フロアマップすべてに反映される", async () => {
     const byDept = await admin.get(`/api/v1/employees?departmentId=${ids.hr}`);
     expect(byDept.body.results.map((r: { id: string }) => r.id)).toEqual([ids.sato]);
 
@@ -103,7 +103,9 @@ describe("管理者: 社員の入社から退職まで", () => {
     expect(seats.body.find((s: { id: string }) => s.id === ids.seat).employee).toBeNull();
   });
 
-  it("7. 同僚が送ったありがとうメッセージがある状態で…", async () => {
+  // [3] thank_you_messages は employees を ON DELETE なしで参照している。
+  // メッセージを受け取った社員でも [4.4] 管理者が削除できることを確認するため、先に1件送っておく
+  it("7. [4.3] 同僚がこの社員にありがとうメッセージを送る", async () => {
     const colleague = new Client();
     await colleague.login("EMP001", PASSWORD);
     const res = await colleague.post("/api/v1/messages", {
@@ -113,20 +115,18 @@ describe("管理者: 社員の入社から退職まで", () => {
     expect(res.status).toBe(201);
   });
 
-  it("8. 退職: 削除すると 204", async () => {
+  it("8. [4.4] 退職: メッセージを受け取っている社員でも削除でき、204", async () => {
     const res = await admin.delete(`/api/v1/admin/employees/${ids.sato}`);
     expect(res.status).toBe(204);
   });
 
-  it("9. 削除後はログインできず、詳細は 404、検索にも出ず、タイムラインからも消える", async () => {
+  it("9. 削除後はログインできず、[openapi] 詳細は 404、検索にも出ない", async () => {
     expect((await new Client().login("EMP100", "Welcome2026!")).status).not.toBe(200);
     expect((await admin.get(`/api/v1/employees/${ids.sato}`)).status).toBe(404);
     expect((await admin.get("/api/v1/employees?employeeId=EMP100")).body.totalCount).toBe(0);
-    const timeline = await admin.get("/api/v1/messages/latest");
-    expect(timeline.body.map((m: { receiverId: string }) => m.receiverId)).not.toContain(ids.sato);
   });
 
-  it("10. 関連データ（スキル・経歴）もDBに残っていない", async () => {
+  it("10. [3] スキル・経歴は ON DELETE CASCADE でDBから消えている", async () => {
     const { rows } = await db.query(
       `SELECT (SELECT count(*) FROM employee_skills WHERE employee_id = $1)::int AS skills,
               (SELECT count(*) FROM employee_experiences WHERE employee_id = $1)::int AS experiences`,

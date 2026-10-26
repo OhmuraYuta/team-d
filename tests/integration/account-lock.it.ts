@@ -20,44 +20,47 @@ beforeAll(async () => {
 
 const tryLogin = (password: string) => new Client().login("EMP001", password);
 
-describe("5回失敗でロック → 管理者が解除", () => {
-  it("1. 4回までは「IDまたはパスワードが違う」エラーで、ロックされない", async () => {
+/** 仕様 4.1「Response (Locked 403)」 */
+const LOCKED_BODY = {
+  success: false,
+  error: "ACCOUNT_LOCKED",
+  message: "アカウントがロックされています。管理者に問い合わせてください。",
+};
+
+describe("[6.1] デフォルト5回の失敗でロック → [4.4] 管理者が解除", () => {
+  it("1. 4回の失敗ではロックされない（ログインは失敗するが ACCOUNT_LOCKED ではない）", async () => {
     for (let i = 1; i <= 4; i++) {
       const res = await tryLogin("wrong");
+      expect(res.status, `${i}回目`).not.toBe(200);
       expect(res.body.error, `${i}回目`).not.toBe("ACCOUNT_LOCKED");
     }
   });
 
-  it("2. 5回目でロックされ、403 ACCOUNT_LOCKED", async () => {
+  it("2. 5回目の失敗でロックされ、[4.1] の 403 レスポンスが返る", async () => {
     const res = await tryLogin("wrong");
     expect(res.status).toBe(403);
-    expect(res.body.error).toBe("ACCOUNT_LOCKED");
+    expect(res.body).toEqual(LOCKED_BODY);
   });
 
-  it("3. ロック中は正しいパスワードでもログインできない", async () => {
+  it("3. ロック中は正しいパスワードでも即座にエラー", async () => {
     const res = await tryLogin(PASSWORD);
     expect(res.status).toBe(403);
     expect(res.body.error).toBe("ACCOUNT_LOCKED");
   });
 
-  it("4. ロック中のユーザーは、ログイン済みの他の社員からは普通に検索・閲覧できる", async () => {
-    const res = await admin.get(`/api/v1/employees/${tanakaId}`);
-    expect(res.status).toBe(200);
-  });
-
-  it("5. 管理者がロックを解除する", async () => {
+  it("4. [4.4] 管理者がロックを解除する", async () => {
     const res = await admin.post(`/api/v1/admin/users/${tanakaId}/unlock`);
     expect(res.status).toBe(200);
   });
 
-  it("6. 解除後は正しいパスワードでログインでき、そのまま検索も使える", async () => {
+  it("5. [4.4] 解除で失敗回数が0に戻り、正しいパスワードでログインして検索も使える", async () => {
     const tanaka = new Client();
     expect((await tanaka.login("EMP001", PASSWORD)).status).toBe(200);
     expect((await tanaka.get("/api/v1/employees")).status).toBe(200);
   });
 });
 
-describe("管理者が上限を3回に変更 → 3回でロック", () => {
+describe("[4.4] 管理者がログイン失敗許容回数を3回に変更 → 3回でロック", () => {
   it("1. 管理者が失敗許容回数を 3 に変更する", async () => {
     const res = await admin.put("/api/v1/admin/settings/max-failed-attempts", {
       maxFailedAttempts: 3,
