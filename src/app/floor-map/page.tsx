@@ -205,7 +205,7 @@ function EmployeeCard({ employee, seatCode }: { employee: EmployeeDetail | null;
           <p className="mt-[12px] text-left text-[16px]">社員ID<br /><span className="text-[12px]">{employee?.employeeId ?? "—"}</span></p>
         </div>
       </div>
-      <div className="mt-[20px] border-t border-black/25 pt-[6px]" />
+      <div className="mt-[20px] border-t border-black/25 pt-[20px]" />
       <div className="grid grid-cols-[130px_1fr] gap-y-[20px] text-[16px]">
         <span>部署</span><span>{employee?.department ?? "—"}</span>
         <span>社内メール</span><span className="whitespace-nowrap text-[14px]">{employee?.email ?? "—"}</span>
@@ -219,8 +219,9 @@ function EmployeeCard({ employee, seatCode }: { employee: EmployeeDetail | null;
           {employee?.skills.length ? employee.skills.map((skill) => <span key={skill} className="flex h-[33px] items-center justify-center rounded-[5px] bg-[#eef3fd] px-[10px] text-center text-[12px] font-bold text-[#1e5fc2]">{skill}</span>) : <span>—</span>}
         </div>
       </div>
-      <button type="button" className="mt-auto flex h-[40px] w-full items-center justify-center rounded-[5px] bg-[#1750a8] text-[16px] font-bold text-white">
-        社員の詳細を見る <span className="ml-auto">›</span>
+      <button type="button" className="relative mt-auto h-[40px] w-full rounded-[5px] bg-[#1750a8] text-[16px] font-bold text-white">
+        <span>社員の詳細を見る</span>
+        <img src="/images/floormap/arrow-right.svg" alt="" className="absolute right-[15px] top-1/2 h-[11px] w-[11px] -translate-y-1/2" />
       </button>
     </aside>
   );
