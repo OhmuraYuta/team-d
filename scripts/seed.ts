@@ -80,26 +80,26 @@ async function seed() {
     console.log("Inserting floor map seats...");
     const seatDefinitions = [
       // 本社 1F
-      { locationId: locHqId, floor: "1F", seatCode: "A-01", x: 20, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "A-02", x: 35, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "A-03", x: 50, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-01", x: 20, y: 60 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-02", x: 35, y: 60 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-03", x: 50, y: 60 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-01", x: 19, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-02", x: 27, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-03", x: 35, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-01", x: 62, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-02", x: 70, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-03", x: 78, y: 15 },
       // 本社 2F
-      { locationId: locHqId, floor: "2F", seatCode: "C-01", x: 25, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "C-02", x: 40, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "C-03", x: 55, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-01", x: 25, y: 65 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-02", x: 40, y: 65 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-03", x: 55, y: 65 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-01", x: 19, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-02", x: 27, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-03", x: 36, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-01", x: 62, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-02", x: 70, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-03", x: 77, y: 73 },
       // 技術センター 3F
-      { locationId: locTechId, floor: "3F", seatCode: "A-12", x: 25, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "A-13", x: 40, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "A-14", x: 55, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-01", x: 25, y: 60 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-02", x: 40, y: 60 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-03", x: 55, y: 60 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-12", x: 19, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-13", x: 27, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-14", x: 35, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-01", x: 62, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-02", x: 70, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-03", x: 78, y: 15 },
     ].map((seat) => ({ ...seat, id: uuidv7() }));
 
     const seatParams = seatDefinitions.flatMap((seat) => [
