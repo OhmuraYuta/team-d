@@ -24,10 +24,6 @@ const designSeats = [
 
 const defaultFloor = "4F";
 
-function SideIcon({ src }: { src: string }) {
-  return <img src={src} alt="" className="h-[20px] w-[20px] object-contain" />;
-}
-
 export default function FloorMapPage() {
   const router = useRouter();
   const { user, isReady } = useAuth();
@@ -123,28 +119,8 @@ export default function FloorMapPage() {
   };
 
   return (
-    <main className="h-screen min-w-0 overflow-hidden bg-[#efefef] text-black">
-      <header className="fixed inset-x-0 top-0 z-20 h-[51px] bg-[#1a2b4a]">
-        <div className="relative h-full w-[255px] overflow-hidden">
-          <img src="/images/floormap/logo.png" alt="社員情報活用システム" className="absolute left-[-3.28%] top-[-106.75%] h-[341.59%] w-[109.38%] max-w-none" />
-        </div>
-      </header>
-
-      <aside className="fixed bottom-0 left-0 top-[51px] z-10 w-[200px] bg-[#1a2b4a] text-white">
-        {[
-          ["ホーム", "home.svg"],
-          ["社員検索", "search.svg"],
-          ["フロアマップ", "map.svg"],
-          ["管理者メニュー", "admin.svg"],
-        ].map(([label, icon], index) => (
-          <div key={label} className={`flex h-[50px] items-center gap-5 px-5 text-[14px] font-medium ${index === 2 ? "bg-[#3f4966]" : ""}`}>
-            <SideIcon src={`/images/floormap/${icon}`} />
-            <span>{label}</span>
-          </div>
-        ))}
-      </aside>
-
-      <section className="ml-[200px] h-screen min-w-0 overflow-hidden pt-[51px]">
+    <div className="-mx-4 -my-5 h-[calc(100vh-51px)] min-w-0 overflow-hidden bg-[#efefef] text-black lg:-mx-8 lg:-my-6">
+      <section className="h-full min-w-0 overflow-hidden">
         <h1 className="h-[76px] px-6 pt-[55px] text-[16px] font-normal">フロアマップ</h1>
         <div className="mx-6 flex h-[calc(100vh-127px)] min-h-0 overflow-hidden rounded-[10px] bg-white shadow-sm">
           <nav className="w-[175px] shrink-0 border border-black/25 bg-white">
@@ -186,7 +162,7 @@ export default function FloorMapPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
 
