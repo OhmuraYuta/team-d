@@ -151,7 +151,7 @@ export default function FloorMapPage() {
               <img src="/images/floormap/floor-map.png" alt={`${locationName} ${floor} フロア図`} className="absolute left-[-13.83%] top-0 h-full w-[128.55%] max-w-none" />
               <div className="absolute inset-0">
                 {displayedSeats.map(([code, x, y]) => (
-                  <button key={code} type="button" aria-label={`座席 ${code}`} onClick={() => selectSeat(code)} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-[5px] bg-white/60 px-2 py-0.5 text-[24px] leading-normal transition hover:bg-white/90 ${selectedCode === code ? "z-10 ring-4 ring-[#1750a8] ring-offset-2" : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>
+                  <button key={code} type="button" aria-label={`座席 ${code}`} onClick={() => selectSeat(code)} className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-[5px] bg-white/60 px-2 py-0.5 text-[20px] leading-normal transition hover:bg-white/90 ${selectedCode === code ? "z-10 ring-4 ring-[#1750a8] ring-offset-2" : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>
                     {code}
                   </button>
                 ))}
