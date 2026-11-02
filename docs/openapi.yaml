@@ -304,9 +304,16 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/EmployeeCreateInput'
+            encoding:
+              skills:
+                contentType: application/json
+              credentials:
+                contentType: application/json
+              experiences:
+                contentType: application/json
       responses:
         '201':
           description: 登録成功
@@ -357,9 +364,16 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/EmployeeUpdateInput'
+            encoding:
+              skills:
+                contentType: application/json
+              credentials:
+                contentType: application/json
+              experiences:
+                contentType: application/json
       responses:
         '200':
           description: 更新成功
@@ -695,8 +709,14 @@ components:
         seatId:
           type: string
           format: uuid
+        photo:
+          type: string
+          format: binary
+          description: 顔写真画像ファイル。対応形式はJPEG、PNG、WebPです。
         photoUrl:
           type: string
+          readOnly: true
+          description: アップロード後にサーバーが設定する顔写真画像URL。
         selfPR:
           type: string
         hobbyInfo:
@@ -750,8 +770,14 @@ components:
         seatId:
           type: string
           format: uuid
+        photo:
+          type: string
+          format: binary
+          description: 顔写真画像ファイル。指定時は既存画像を置き換えます。対応形式はJPEG、PNG、WebPです。
         photoUrl:
           type: string
+          readOnly: true
+          description: アップロード後にサーバーが設定する顔写真画像URL。
         selfPR:
           type: string
         hobbyInfo:
