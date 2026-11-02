@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getLocations, getSeats } from "@/lib/api/masters";
 import { getEmployee } from "@/lib/api/employees";
 import { ApiError } from "@/lib/api/client";
@@ -195,10 +196,10 @@ function EmployeeCard({ employee, seatCode }: { employee: EmployeeDetail | null;
           {employee?.skills.length ? employee.skills.map((skill) => <span key={skill} className="flex h-[33px] items-center justify-center rounded-[5px] bg-[#eef3fd] px-[10px] text-center text-[12px] font-bold text-[#1e5fc2]">{skill}</span>) : <span>—</span>}
         </div>
       </div>
-      <button type="button" className="relative mt-auto h-[40px] w-full rounded-[5px] bg-[#1750a8] text-[16px] font-bold text-white">
+      <Link href={employee ? `/employees/${employee.id}` : "#"} aria-disabled={!employee} className={`relative mt-auto flex h-[40px] w-full items-center justify-center rounded-[5px] bg-[#1750a8] text-[16px] font-bold text-white ${employee ? "" : "pointer-events-none opacity-50"}`}>
         <span>社員の詳細を見る</span>
         <span aria-hidden="true" className="absolute right-[17px] top-1/2 h-[9px] w-[9px] -translate-y-1/2 rotate-45 rounded-[1px] border-r-2 border-t-2 border-white" />
-      </button>
+      </Link>
     </aside>
   );
 }
