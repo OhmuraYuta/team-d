@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getLocations, getSeats } from "@/lib/api/masters";
@@ -8,20 +8,6 @@ import { getEmployee } from "@/lib/api/employees";
 import { ApiError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth-context";
 import type { EmployeeDetail, FloorMapSeat, MasterItem } from "@/lib/types";
-
-const designSeats = [
-  ["A-1", 10, 8], ["A-2", 16, 8], ["A-3", 22, 8], ["A-4", 28, 8],
-  ["B-1", 38, 8], ["B-2", 44, 8], ["B-3", 50, 8], ["B-4", 56, 8],
-  ["A-5", 10, 27], ["A-6", 16, 27], ["A-7", 22, 27], ["A-8", 28, 27],
-  ["B-5", 38, 27], ["B-6", 44, 27], ["B-7", 50, 27], ["B-8", 56, 27],
-  ["C-1", 3, 34], ["C-2", 9, 34], ["C-3", 3, 57], ["C-4", 9, 57],
-  ["D-1", 25, 34], ["D-2", 31, 34], ["D-3", 37, 34], ["D-5", 25, 57], ["D-6", 31, 57], ["D-7", 37, 57],
-  ["E-1", 66, 34], ["E-2", 72, 34], ["E-3", 66, 57], ["E-4", 72, 57],
-  ["F-1", 10, 78], ["F-2", 16, 78], ["F-3", 22, 78], ["F-4", 28, 78],
-  ["G-1", 38, 78], ["G-2", 44, 78], ["G-3", 50, 78], ["G-4", 56, 78],
-  ["F-5", 10, 97], ["F-6", 16, 97], ["F-7", 22, 97], ["F-8", 28, 97],
-  ["G-5", 38, 97], ["G-6", 44, 97], ["G-7", 50, 97], ["G-8", 56, 97],
-] as const;
 
 const defaultFloor = "4F";
 
@@ -100,10 +86,7 @@ export default function FloorMapPage() {
   }, [floor, floorsByLocation, locationId, router, user]);
 
   const locationName = locations.find((location) => location.id === locationId)?.name ?? "東京本社";
-  const displayedSeats = useMemo(() => {
-    if (!apiSeats.length) return designSeats;
-    return apiSeats.map((seat) => [seat.seatCode, seat.x, seat.y] as const);
-  }, [apiSeats]);
+  const displayedSeats = apiSeats.map((seat) => [seat.seatCode, seat.x, seat.y] as const);
 
   const selectSeat = (code: string) => {
     setSelectedCode(code);
