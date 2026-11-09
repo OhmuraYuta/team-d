@@ -2,17 +2,25 @@ export class EmployeeFormError extends Error {}
 
 const arrayFields = ["skills", "credentials", "experiences"] as const;
 
-function parseArrayField(value: FormDataEntryValue | null, field: string): unknown[] {
-  if (value === null) return [];
-  if (typeof value !== "string") throw new EmployeeFormError(`${field}はJSON配列で指定してください。`);
-
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!Array.isArray(parsed)) throw new Error();
-    return parsed;
-  } catch {
-    throw new EmployeeFormError(`${field}はJSON配列で指定してください。`);
+function parseArrayField(form: FormData, field: string): unknown[] {
+  const entries = form.getAll(field);
+  const result: unknown[] = [];
+  for (const entry of entries) {
+    if (entry instanceof File) {
+      throw new EmployeeFormError(`${field}はJSON配列で指定してください。`);
+    }
+    const text = entry.trim();
+    if (text === "") continue;
+    try {
+      const parsed: unknown = JSON.parse(text);
+      if (Array.isArray(parsed)) result.push(...parsed);
+      else result.push(parsed);
+    } catch {
+      // 素のUUID文字列など、JSONくくりなしの単体値も許容する。
+      result.push(entry);
+    }
   }
+  return result;
 }
 
 /** JSONまたはOpenAPIで定義したmultipart/form-dataを社員入力へ変換する。 */
@@ -45,7 +53,7 @@ export async function parseEmployeeRequest(
       if (typeof value === "string") body[field] = value;
     }
     for (const field of arrayFields) {
-      if (form.has(field)) body[field] = parseArrayField(form.get(field), field);
+      if (form.has(field)) body[field] = parseArrayField(form, field);
     }
 
     const photo = form.get("photo");
