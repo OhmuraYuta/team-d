@@ -49,9 +49,15 @@ export async function parseEmployeeRequest(
     }
 
     const photo = form.get("photo");
+    if (typeof photo === "string") {
+      if (photo.trim() === "") return { body };
+      throw new EmployeeFormError("photoは画像ファイルで指定してください。");
+    }
     if (photo !== null && !(photo instanceof File)) {
       throw new EmployeeFormError("photoは画像ファイルで指定してください。");
     }
+    // 未選択時に空Fileを送るブラウザがあるため、size 0は「写真なし」とみなす。
+    if (photo instanceof File && photo.size === 0) return { body };
 
     return { body, photo: photo instanceof File ? photo : undefined };
   }
