@@ -5,6 +5,13 @@ import { pool, query } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { ErrorResponse } from "@/lib/types/auth";
 import { EmployeeCreateInput, EmployeeCreateResponse } from "@/lib/types/employee";
+import { EmployeeFormError, parseEmployeeRequest } from "@/lib/api/employee-form";
+import {
+  commitTempEmployeePhoto,
+  discardTempEmployeePhoto,
+  saveTempEmployeePhoto,
+  validateEmployeePhoto,
+} from "@/lib/api/employee-photo";
 
 export async function POST(request: NextRequest) {
   // 1. 管理者認可チェック
@@ -15,14 +22,17 @@ export async function POST(request: NextRequest) {
 
   // 2. リクエストボディのパース
   let body: EmployeeCreateInput;
+  let photo: File | undefined;
   try {
-    body = await request.json();
-  } catch {
+    const parsed = await parseEmployeeRequest(request);
+    body = parsed.body as EmployeeCreateInput;
+    photo = parsed.photo;
+  } catch (error) {
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
         error: "BAD_REQUEST",
-        message: "リクエストボディが不正です。",
+        message: error instanceof EmployeeFormError ? error.message : "リクエストボディが不正です。",
       },
       { status: 400 }
     );
@@ -114,6 +124,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (photo && "photoUrl" in body) {
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        error: "BAD_REQUEST",
+        message: "photoとphotoUrlは同時に指定できません。",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (photo) {
+    const photoError = validateEmployeePhoto(photo);
+    if (photoError) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, error: "BAD_REQUEST", message: photoError },
+        { status: 400 }
+      );
+    }
+  }
+
   try {
     // 4. 重複チェック (login_id, email)
     const duplicateCheck = await query<{ login_id: string; email: string }>(
@@ -161,6 +192,11 @@ export async function POST(request: NextRequest) {
     // 5. DB トランザクション処理
     const newEmployeeId = uuidv7();
     const passwordHash = await bcrypt.hash(password, 10);
+    // COMMIT確定まではtmpに書き出し、失敗時はtmpのみ破棄する（新規IDのため上書き破壊はない）。
+    const tempPhoto = photo ? await saveTempEmployeePhoto(photo) : null;
+    const finalPhotoUrl = tempPhoto
+      ? `/uploads/employees/${newEmployeeId}.${tempPhoto.extension}`
+      : null;
 
     const client = await pool.connect();
     try {
@@ -189,7 +225,7 @@ export async function POST(request: NextRequest) {
           locationId || null,
           positionId || null,
           seatId || null,
-          photoUrl || null,
+          finalPhotoUrl || photoUrl || null,
           selfPR || null,
           hobbyInfo || null,
         ]
@@ -248,6 +284,7 @@ export async function POST(request: NextRequest) {
       await client.query("COMMIT");
     } catch (dbError: unknown) {
       await client.query("ROLLBACK");
+      await discardTempEmployeePhoto(tempPhoto?.tempPath);
 
       // 外部キー制約違反 (23503)
       if (
@@ -269,6 +306,22 @@ export async function POST(request: NextRequest) {
       throw dbError;
     } finally {
       client.release();
+    }
+
+    if (tempPhoto) {
+      try {
+        await commitTempEmployeePhoto(tempPhoto.tempPath, newEmployeeId, tempPhoto.extension);
+      } catch (commitError) {
+        console.error("Employee photo commit error:", commitError);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: "INTERNAL_SERVER_ERROR",
+            message: "顔写真の保存に失敗しました。",
+          },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json<EmployeeCreateResponse>(

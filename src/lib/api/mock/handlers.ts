@@ -44,6 +44,8 @@ function toSummary(e: MockEmployee): EmployeeSummary {
     position: e.positionId ? (positionById.get(e.positionId)?.name ?? null) : null,
     email: e.email,
     photoUrl: e.photoUrl,
+    skills: e.skills,
+    credentials: e.credentials,
   };
 }
 
@@ -155,11 +157,27 @@ export function mockSearchEmployees(params: EmployeeSearchParams): EmployeeSearc
       )
         return false;
       if (!includes(e.hobbyInfo, params.hobby)) return false;
+      if (!includes(e.email, params.email)) return false;
+      if (params.positionId && e.positionId !== params.positionId) return false;
+      if (
+        params.experience &&
+        !e.experiences.some((x) =>
+          (x.roleDescription ?? "").toLowerCase().includes(params.experience!.toLowerCase())
+        )
+      )
+        return false;
       return true;
     })
     .map(toSummary);
 
-  return { totalCount: results.length, results };
+  // ページネーション（デザインの表示件数・ページ送りに対応）。
+  // 注: 仕様書に page / limit の定義が無いためフロント都合の暫定。バックエンドと要調整。
+  const totalCount = results.length;
+  const limit = params.limit;
+  if (!limit) return { totalCount, results };
+  const page = Math.max(1, params.page ?? 1);
+  const start = (page - 1) * limit;
+  return { totalCount, results: results.slice(start, start + limit) };
 }
 
 export function mockGetEmployee(id: string): EmployeeDetail | null {

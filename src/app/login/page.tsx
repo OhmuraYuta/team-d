@@ -57,7 +57,7 @@ export default function LoginPage() {
         <Image src="/images/login/building.png" alt="" fill sizes="56vw" className="object-cover" />
         <div className="absolute top-1/2 left-[6%] w-[62%] max-w-[520px] -translate-y-1/2">
           <Image
-            src="/images/login/logo.png"
+            src="/images/logo.png"
             alt="社員情報活用システム"
             width={673}
             height={132}

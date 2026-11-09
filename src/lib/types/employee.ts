@@ -18,6 +18,7 @@ export interface EmployeeCreateInput {
   locationId?: string | null;
   positionId?: string | null;
   seatId?: string | null;
+  photo?: File;
   photoUrl?: string | null;
   selfPR?: string | null;
   hobbyInfo?: string | null;

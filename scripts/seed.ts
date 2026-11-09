@@ -56,29 +56,50 @@ async function seed() {
       "部長",
     ]);
 
+    const skillReactId = uuidv7();
+    const skillTypeScriptId = uuidv7();
+    const skillNodeId = uuidv7();
+    await client.query("INSERT INTO skills (id, name) VALUES ($1, $2), ($3, $4), ($5, $6)", [
+      skillReactId,
+      "React",
+      skillTypeScriptId,
+      "TypeScript",
+      skillNodeId,
+      "Node.js",
+    ]);
+
+    const credentialAppliedInformationId = uuidv7();
+    const credentialAwsSapId = uuidv7();
+    await client.query("INSERT INTO credentials (id, name) VALUES ($1, $2), ($3, $4)", [
+      credentialAppliedInformationId,
+      "応用情報技術者",
+      credentialAwsSapId,
+      "AWS SAP",
+    ]);
+
     console.log("Inserting floor map seats...");
     const seatDefinitions = [
       // 本社 1F
-      { locationId: locHqId, floor: "1F", seatCode: "A-01", x: 20, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "A-02", x: 35, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "A-03", x: 50, y: 25 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-01", x: 20, y: 60 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-02", x: 35, y: 60 },
-      { locationId: locHqId, floor: "1F", seatCode: "B-03", x: 50, y: 60 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-01", x: 19, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-02", x: 27, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "A-03", x: 35, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-01", x: 62, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-02", x: 70, y: 15 },
+      { locationId: locHqId, floor: "1F", seatCode: "B-03", x: 78, y: 15 },
       // 本社 2F
-      { locationId: locHqId, floor: "2F", seatCode: "C-01", x: 25, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "C-02", x: 40, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "C-03", x: 55, y: 30 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-01", x: 25, y: 65 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-02", x: 40, y: 65 },
-      { locationId: locHqId, floor: "2F", seatCode: "D-03", x: 55, y: 65 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-01", x: 19, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-02", x: 27, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "C-03", x: 36, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-01", x: 62, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-02", x: 70, y: 73 },
+      { locationId: locHqId, floor: "2F", seatCode: "D-03", x: 77, y: 73 },
       // 技術センター 3F
-      { locationId: locTechId, floor: "3F", seatCode: "A-12", x: 25, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "A-13", x: 40, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "A-14", x: 55, y: 20 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-01", x: 25, y: 60 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-02", x: 40, y: 60 },
-      { locationId: locTechId, floor: "3F", seatCode: "B-03", x: 55, y: 60 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-12", x: 19, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-13", x: 27, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "A-14", x: 35, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-01", x: 62, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-02", x: 70, y: 15 },
+      { locationId: locTechId, floor: "3F", seatCode: "B-03", x: 78, y: 15 },
     ].map((seat) => ({ ...seat, id: uuidv7() }));
 
     const seatParams = seatDefinitions.flatMap((seat) => [
@@ -129,6 +150,24 @@ async function seed() {
         posStaffId,
         seatIdByCode.get("A-13"),
       ]
+    );
+
+    console.log("Assigning employee skills and credentials...");
+    await client.query(
+      `INSERT INTO employee_skills (employee_id, skill_id) VALUES
+      ($1, $2),
+      ($1, $3),
+      ($1, $4),
+      ($5, $3),
+      ($5, $4)`,
+      [empAdminId, skillReactId, skillTypeScriptId, skillNodeId, empRegularId]
+    );
+    await client.query(
+      `INSERT INTO employee_credentials (employee_id, credential_id) VALUES
+      ($1, $2),
+      ($1, $3),
+      ($4, $2)`,
+      [empAdminId, credentialAppliedInformationId, credentialAwsSapId, empRegularId]
     );
 
     console.log("Seed completed successfully!");
