@@ -307,13 +307,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/EmployeeCreateInput'
-            encoding:
-              skills:
-                contentType: application/json
-              credentials:
-                contentType: application/json
-              experiences:
-                contentType: application/json
       responses:
         '201':
           description: 登録成功
@@ -367,13 +360,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/EmployeeUpdateInput'
-            encoding:
-              skills:
-                contentType: application/json
-              credentials:
-                contentType: application/json
-              experiences:
-                contentType: application/json
       responses:
         '200':
           description: 更新成功
