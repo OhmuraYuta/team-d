@@ -7,8 +7,9 @@ import { ErrorResponse } from "@/lib/types/auth";
 import { EmployeeCreateInput, EmployeeCreateResponse } from "@/lib/types/employee";
 import { EmployeeFormError, parseEmployeeRequest } from "@/lib/api/employee-form";
 import {
-  removeEmployeePhoto,
-  saveEmployeePhoto,
+  commitTempEmployeePhoto,
+  discardTempEmployeePhoto,
+  saveTempEmployeePhoto,
   validateEmployeePhoto,
 } from "@/lib/api/employee-photo";
 
@@ -22,7 +23,6 @@ export async function POST(request: NextRequest) {
   // 2. リクエストボディのパース
   let body: EmployeeCreateInput;
   let photo: File | undefined;
-  let uploadedPhotoUrl: string | null = null;
   try {
     const parsed = await parseEmployeeRequest(request);
     body = parsed.body as EmployeeCreateInput;
@@ -124,6 +124,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (photo && "photoUrl" in body) {
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        error: "BAD_REQUEST",
+        message: "photoとphotoUrlは同時に指定できません。",
+      },
+      { status: 400 }
+    );
+  }
+
   if (photo) {
     const photoError = validateEmployeePhoto(photo);
     if (photoError) {
@@ -181,7 +192,11 @@ export async function POST(request: NextRequest) {
     // 5. DB トランザクション処理
     const newEmployeeId = uuidv7();
     const passwordHash = await bcrypt.hash(password, 10);
-    uploadedPhotoUrl = photo ? await saveEmployeePhoto(photo, newEmployeeId) : null;
+    // COMMIT確定まではtmpに書き出し、失敗時はtmpのみ破棄する（新規IDのため上書き破壊はない）。
+    const tempPhoto = photo ? await saveTempEmployeePhoto(photo) : null;
+    const finalPhotoUrl = tempPhoto
+      ? `/uploads/employees/${newEmployeeId}.${tempPhoto.extension}`
+      : null;
 
     const client = await pool.connect();
     try {
@@ -210,7 +225,7 @@ export async function POST(request: NextRequest) {
           locationId || null,
           positionId || null,
           seatId || null,
-          uploadedPhotoUrl || photoUrl || null,
+          finalPhotoUrl || photoUrl || null,
           selfPR || null,
           hobbyInfo || null,
         ]
@@ -269,6 +284,7 @@ export async function POST(request: NextRequest) {
       await client.query("COMMIT");
     } catch (dbError: unknown) {
       await client.query("ROLLBACK");
+      await discardTempEmployeePhoto(tempPhoto?.tempPath);
 
       // 外部キー制約違反 (23503)
       if (
@@ -277,7 +293,6 @@ export async function POST(request: NextRequest) {
         "code" in dbError &&
         (dbError as { code: string }).code === "23503"
       ) {
-        await removeEmployeePhoto(uploadedPhotoUrl);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -288,10 +303,25 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await removeEmployeePhoto(uploadedPhotoUrl);
       throw dbError;
     } finally {
       client.release();
+    }
+
+    if (tempPhoto) {
+      try {
+        await commitTempEmployeePhoto(tempPhoto.tempPath, newEmployeeId, tempPhoto.extension);
+      } catch (commitError) {
+        console.error("Employee photo commit error:", commitError);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: "INTERNAL_SERVER_ERROR",
+            message: "顔写真の保存に失敗しました。",
+          },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json<EmployeeCreateResponse>(
@@ -303,7 +333,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    await removeEmployeePhoto(uploadedPhotoUrl);
     console.error("Employee registration error:", error);
     return NextResponse.json<ErrorResponse>(
       {
