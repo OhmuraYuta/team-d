@@ -6,8 +6,10 @@ import { ErrorResponse } from "@/lib/types/auth";
 import { EmployeeExperienceInput } from "@/lib/types/employee";
 import { EmployeeFormError, parseEmployeeRequest } from "@/lib/api/employee-form";
 import {
+  commitTempEmployeePhoto,
+  discardTempEmployeePhoto,
   removeEmployeePhoto,
-  saveEmployeePhoto,
+  saveTempEmployeePhoto,
   validateEmployeePhoto,
 } from "@/lib/api/employee-photo";
 
@@ -110,15 +112,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (Object.keys(rawBody).length === 0 && !photo)
     return badRequest("更新する項目を1つ以上指定してください。");
 
+  const body = rawBody as EmployeeUpdateInput;
+  const has = (key: keyof EmployeeUpdateInput) => Object.hasOwn(rawBody, key);
+
+  if (photo && has("photoUrl")) {
+    return badRequest("photoとphotoUrlは同時に指定できません。");
+  }
+
   if (photo) {
     const photoError = validateEmployeePhoto(photo);
     if (photoError) return badRequest(photoError);
   }
 
-  const body = rawBody as EmployeeUpdateInput;
-  const has = (key: keyof EmployeeUpdateInput) => Object.hasOwn(rawBody, key);
   const updates: { column: EmployeeColumn; value: string | null }[] = [];
-  let uploadedPhotoUrl: string | null = null;
   let previousPhotoUrl: string | null = null;
 
   const requiredTextFields = [
@@ -157,10 +163,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   for (const [field, column, label] of uuidFields) {
     if (!has(field)) continue;
     const value = body[field];
-    if (value !== null && (typeof value !== "string" || !uuidPattern.test(value))) {
+    // FormDataではnull解除を空文字で表現する（欠落=変更なし、空文字=nullへ解除）。
+    if (value === "" || value === null) {
+      updates.push({ column, value: null });
+      continue;
+    }
+    if (typeof value !== "string" || !uuidPattern.test(value)) {
       return badRequest(`${label}はUUIDまたはnullで指定してください。`);
     }
-    updates.push({ column, value: value as string | null });
+    updates.push({ column, value });
   }
 
   const nullableTextFields = [
@@ -170,6 +181,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   ] as const;
   for (const [field, column] of nullableTextFields) {
     if (!has(field)) continue;
+    // photoファイル併用時はphotoUrl側を積まない（二重SET防止。上で400済みのため到達しないが防御）。
+    if (field === "photoUrl" && photo) continue;
     const value = body[field];
     if (value !== null && typeof value !== "string") {
       return badRequest(`${field}は文字列またはnullで指定してください。`);
@@ -216,8 +229,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
+  // 既存写真の破壊を避けるため、ファイルはtmpに書き、COMMIT確定後に本番へrenameする。
+  // seatIdの空文字は解除(null)とみなす。
+  const seatIdForCheck = has("seatId") && body.seatId !== null && body.seatId !== "" ? body.seatId : null;
+
   const client = await pool.connect();
+  let tempPhoto: { tempPath: string; extension: string } | null = null;
+  let finalPhotoUrl: string | null = null;
   try {
+    if (photo) {
+      try {
+        tempPhoto = await saveTempEmployeePhoto(photo);
+      } catch {
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: "INTERNAL_SERVER_ERROR",
+            message: "顔写真の保存に失敗しました。",
+          },
+          { status: 500 }
+        );
+      }
+      finalPhotoUrl = `/uploads/employees/${id}.${tempPhoto.extension}`;
+      updates.push({ column: "photo_url", value: finalPhotoUrl });
+    }
+
     await client.query("BEGIN");
 
     const employee = await client.query(
@@ -226,16 +262,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     );
     if (employee.rowCount === 0) {
       await client.query("ROLLBACK");
+      await discardTempEmployeePhoto(tempPhoto?.tempPath);
       return NextResponse.json<ErrorResponse>(
         { success: false, error: "NOT_FOUND", message: "指定された社員が見つかりません。" },
         { status: 404 }
       );
     }
     previousPhotoUrl = employee.rows[0].photo_url;
-    if (photo) {
-      uploadedPhotoUrl = await saveEmployeePhoto(photo, id);
-      updates.push({ column: "photo_url", value: uploadedPhotoUrl });
-    }
 
     if (has("email")) {
       const duplicate = await client.query(
@@ -244,7 +277,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       );
       if (duplicate.rowCount && duplicate.rowCount > 0) {
         await client.query("ROLLBACK");
-        await removeEmployeePhoto(uploadedPhotoUrl);
+        await discardTempEmployeePhoto(tempPhoto?.tempPath);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -256,14 +289,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    if (has("seatId") && body.seatId !== null) {
+    if (seatIdForCheck) {
       const duplicate = await client.query(
         "SELECT id FROM employees WHERE seat_id = $1 AND id <> $2",
-        [body.seatId, id]
+        [seatIdForCheck, id]
       );
       if (duplicate.rowCount && duplicate.rowCount > 0) {
         await client.query("ROLLBACK");
-        await removeEmployeePhoto(uploadedPhotoUrl);
+        await discardTempEmployeePhoto(tempPhoto?.tempPath);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -323,13 +356,36 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await client.query("COMMIT");
-    if (uploadedPhotoUrl && previousPhotoUrl !== uploadedPhotoUrl) {
-      await removeEmployeePhoto(previousPhotoUrl);
+
+    if (tempPhoto && finalPhotoUrl) {
+      try {
+        await commitTempEmployeePhoto(tempPhoto.tempPath, id, tempPhoto.extension);
+      } catch (commitError) {
+        console.error("Employee photo commit error:", commitError);
+        return NextResponse.json<ErrorResponse>(
+          {
+            success: false,
+            error: "INTERNAL_SERVER_ERROR",
+            message: "顔写真の保存に失敗しました。",
+          },
+          { status: 500 }
+        );
+      }
+      if (previousPhotoUrl && previousPhotoUrl !== finalPhotoUrl) {
+        await removeEmployeePhoto(previousPhotoUrl);
+      }
+    } else if (has("photoUrl")) {
+      // photoUrlでのクリア・上書き時は旧アップロードファイルを掃除する。
+      const nextPhotoUrl =
+        typeof body.photoUrl === "string" ? body.photoUrl.trim() || null : body.photoUrl ?? null;
+      if (previousPhotoUrl && previousPhotoUrl !== nextPhotoUrl) {
+        await removeEmployeePhoto(previousPhotoUrl);
+      }
     }
     return NextResponse.json({ success: true, id, message: "社員情報を更新しました。" });
   } catch (error) {
     await client.query("ROLLBACK");
-    if (uploadedPhotoUrl) await removeEmployeePhoto(uploadedPhotoUrl);
+    await discardTempEmployeePhoto(tempPhoto?.tempPath);
 
     if (isDatabaseError(error)) {
       if (error.code === "23503") {
@@ -370,11 +426,14 @@ export async function DELETE(
   }
 
   const client = await pool.connect();
+  let deletedPhotoUrl: string | null = null;
   try {
     await client.query("BEGIN");
 
     // 社員行をロックし、削除対象へのメッセージ追加との競合を防ぐ。
-    const employee = await client.query("SELECT id FROM employees WHERE id = $1 FOR UPDATE", [id]);
+    const employee = await client.query("SELECT id, photo_url FROM employees WHERE id = $1 FOR UPDATE", [
+      id,
+    ]);
     if (employee.rowCount === 0) {
       await client.query("ROLLBACK");
       return NextResponse.json<ErrorResponse>(
@@ -382,6 +441,7 @@ export async function DELETE(
         { status: 404 }
       );
     }
+    deletedPhotoUrl = employee.rows[0].photo_url;
 
     await client.query(
       "DELETE FROM thank_you_messages WHERE sender_id = $1 OR receiver_id = $1",
@@ -389,6 +449,7 @@ export async function DELETE(
     );
     await client.query("DELETE FROM employees WHERE id = $1", [id]);
     await client.query("COMMIT");
+    await removeEmployeePhoto(deletedPhotoUrl);
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
