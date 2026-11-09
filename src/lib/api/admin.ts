@@ -6,6 +6,21 @@ import type { AdminEmployeeRow, EmployeeInput, SeatInput } from "@/lib/types";
 import { apiFetch, withMock } from "./client";
 import { mockGetAdminEmployees, mockUnlockUser } from "./mock/handlers";
 
+function employeeFormData(input: Partial<EmployeeInput>): FormData {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined || value === null || key === "photoUrl") continue;
+    if (key === "photo" && typeof File !== "undefined" && value instanceof File) {
+      form.append(key, value);
+    } else if (Array.isArray(value)) {
+      form.append(key, JSON.stringify(value));
+    } else {
+      form.append(key, String(value));
+    }
+  }
+  return form;
+}
+
 /** 管理画面の全社員一覧（ロック状態を含む）。 */
 export async function getAdminEmployees(): Promise<AdminEmployeeRow[]> {
   return withMock(
@@ -29,7 +44,7 @@ export async function createEmployee(input: EmployeeInput): Promise<{ id: string
     () =>
       apiFetch<{ id: string }>("/admin/employees", {
         method: "POST",
-        body: JSON.stringify(input),
+        body: employeeFormData(input),
       })
   );
 }
@@ -44,7 +59,7 @@ export async function updateEmployee(
     () =>
       apiFetch<{ success: boolean }>(`/admin/employees/${id}`, {
         method: "PUT",
-        body: JSON.stringify(input),
+        body: employeeFormData(input),
       })
   );
 }

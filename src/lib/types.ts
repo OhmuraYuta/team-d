@@ -170,6 +170,7 @@ export interface SeatInput {
 
 export interface EmployeeInput {
   loginId: string;
+  password?: string;
   lastName: string;
   firstName: string;
   email: string;
@@ -178,9 +179,18 @@ export interface EmployeeInput {
   locationId?: string | null;
   positionId?: string | null;
   seatId?: string | null;
+  photo?: File;
   photoUrl?: string | null;
   selfPR?: string | null;
   hobbyInfo?: string | null;
+  skills?: string[];
+  credentials?: string[];
+  experiences?: {
+    projectName: string;
+    roleDescription?: string;
+    startDate?: string;
+    endDate?: string;
+  }[];
 }
 
 /** 管理画面の社員一覧行（ロック状態を含む） */

@@ -5,6 +5,12 @@ import { pool, query } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { ErrorResponse } from "@/lib/types/auth";
 import { EmployeeCreateInput, EmployeeCreateResponse } from "@/lib/types/employee";
+import { EmployeeFormError, parseEmployeeRequest } from "@/lib/api/employee-form";
+import {
+  removeEmployeePhoto,
+  saveEmployeePhoto,
+  validateEmployeePhoto,
+} from "@/lib/api/employee-photo";
 
 export async function POST(request: NextRequest) {
   // 1. 管理者認可チェック
@@ -15,14 +21,18 @@ export async function POST(request: NextRequest) {
 
   // 2. リクエストボディのパース
   let body: EmployeeCreateInput;
+  let photo: File | undefined;
+  let uploadedPhotoUrl: string | null = null;
   try {
-    body = await request.json();
-  } catch {
+    const parsed = await parseEmployeeRequest(request);
+    body = parsed.body as EmployeeCreateInput;
+    photo = parsed.photo;
+  } catch (error) {
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
         error: "BAD_REQUEST",
-        message: "リクエストボディが不正です。",
+        message: error instanceof EmployeeFormError ? error.message : "リクエストボディが不正です。",
       },
       { status: 400 }
     );
@@ -114,6 +124,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (photo) {
+    const photoError = validateEmployeePhoto(photo);
+    if (photoError) {
+      return NextResponse.json<ErrorResponse>(
+        { success: false, error: "BAD_REQUEST", message: photoError },
+        { status: 400 }
+      );
+    }
+  }
+
   try {
     // 4. 重複チェック (login_id, email)
     const duplicateCheck = await query<{ login_id: string; email: string }>(
@@ -161,6 +181,7 @@ export async function POST(request: NextRequest) {
     // 5. DB トランザクション処理
     const newEmployeeId = uuidv7();
     const passwordHash = await bcrypt.hash(password, 10);
+    uploadedPhotoUrl = photo ? await saveEmployeePhoto(photo, newEmployeeId) : null;
 
     const client = await pool.connect();
     try {
@@ -189,7 +210,7 @@ export async function POST(request: NextRequest) {
           locationId || null,
           positionId || null,
           seatId || null,
-          photoUrl || null,
+          uploadedPhotoUrl || photoUrl || null,
           selfPR || null,
           hobbyInfo || null,
         ]
@@ -256,6 +277,7 @@ export async function POST(request: NextRequest) {
         "code" in dbError &&
         (dbError as { code: string }).code === "23503"
       ) {
+        await removeEmployeePhoto(uploadedPhotoUrl);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -266,6 +288,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      await removeEmployeePhoto(uploadedPhotoUrl);
       throw dbError;
     } finally {
       client.release();
@@ -280,6 +303,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    await removeEmployeePhoto(uploadedPhotoUrl);
     console.error("Employee registration error:", error);
     return NextResponse.json<ErrorResponse>(
       {

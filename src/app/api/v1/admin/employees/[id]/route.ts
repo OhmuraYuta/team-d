@@ -4,6 +4,12 @@ import { requireAdmin } from "@/lib/auth";
 import { pool } from "@/lib/db";
 import { ErrorResponse } from "@/lib/types/auth";
 import { EmployeeExperienceInput } from "@/lib/types/employee";
+import { EmployeeFormError, parseEmployeeRequest } from "@/lib/api/employee-form";
+import {
+  removeEmployeePhoto,
+  saveEmployeePhoto,
+  validateEmployeePhoto,
+} from "@/lib/api/employee-photo";
 
 type EmployeeUpdateInput = {
   lastName?: string;
@@ -85,10 +91,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   let rawBody: unknown;
+  let photo: File | undefined;
   try {
-    rawBody = await request.json();
-  } catch {
-    return badRequest("リクエストボディが不正です。");
+    const parsed = await parseEmployeeRequest(request);
+    rawBody = parsed.body;
+    photo = parsed.photo;
+  } catch (error) {
+    return badRequest(error instanceof EmployeeFormError ? error.message : "リクエストボディが不正です。");
   }
 
   if (!isRecord(rawBody))
@@ -98,12 +107,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (unknownFields.length > 0) {
     return badRequest(`更新できない項目が含まれています: ${unknownFields.join(", ")}`);
   }
-  if (Object.keys(rawBody).length === 0)
+  if (Object.keys(rawBody).length === 0 && !photo)
     return badRequest("更新する項目を1つ以上指定してください。");
+
+  if (photo) {
+    const photoError = validateEmployeePhoto(photo);
+    if (photoError) return badRequest(photoError);
+  }
 
   const body = rawBody as EmployeeUpdateInput;
   const has = (key: keyof EmployeeUpdateInput) => Object.hasOwn(rawBody, key);
   const updates: { column: EmployeeColumn; value: string | null }[] = [];
+  let uploadedPhotoUrl: string | null = null;
+  let previousPhotoUrl: string | null = null;
 
   const requiredTextFields = [
     ["lastName", "last_name", "姓(lastName)"],
@@ -204,13 +220,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     await client.query("BEGIN");
 
-    const employee = await client.query("SELECT id FROM employees WHERE id = $1 FOR UPDATE", [id]);
+    const employee = await client.query(
+      "SELECT id, photo_url FROM employees WHERE id = $1 FOR UPDATE",
+      [id]
+    );
     if (employee.rowCount === 0) {
       await client.query("ROLLBACK");
       return NextResponse.json<ErrorResponse>(
         { success: false, error: "NOT_FOUND", message: "指定された社員が見つかりません。" },
         { status: 404 }
       );
+    }
+    previousPhotoUrl = employee.rows[0].photo_url;
+    if (photo) {
+      uploadedPhotoUrl = await saveEmployeePhoto(photo, id);
+      updates.push({ column: "photo_url", value: uploadedPhotoUrl });
     }
 
     if (has("email")) {
@@ -220,6 +244,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       );
       if (duplicate.rowCount && duplicate.rowCount > 0) {
         await client.query("ROLLBACK");
+        await removeEmployeePhoto(uploadedPhotoUrl);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -238,6 +263,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       );
       if (duplicate.rowCount && duplicate.rowCount > 0) {
         await client.query("ROLLBACK");
+        await removeEmployeePhoto(uploadedPhotoUrl);
         return NextResponse.json<ErrorResponse>(
           {
             success: false,
@@ -297,9 +323,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     await client.query("COMMIT");
+    if (uploadedPhotoUrl && previousPhotoUrl !== uploadedPhotoUrl) {
+      await removeEmployeePhoto(previousPhotoUrl);
+    }
     return NextResponse.json({ success: true, id, message: "社員情報を更新しました。" });
   } catch (error) {
     await client.query("ROLLBACK");
+    if (uploadedPhotoUrl) await removeEmployeePhoto(uploadedPhotoUrl);
 
     if (isDatabaseError(error)) {
       if (error.code === "23503") {
