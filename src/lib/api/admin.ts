@@ -6,11 +6,25 @@ import type { AdminEmployeeRow, EmployeeInput, SeatInput } from "@/lib/types";
 import { apiFetch, withMock } from "./client";
 import { mockGetAdminEmployees, mockUnlockUser } from "./mock/handlers";
 
+const NULLABLE_ARRAY_FIELDS = new Set(["skills", "credentials", "experiences"]);
+
 function employeeFormData(input: Partial<EmployeeInput>): FormData {
   const form = new FormData();
   for (const [key, value] of Object.entries(input)) {
-    if (value === undefined || value === null || key === "photoUrl") continue;
-    if (key === "photo" && typeof File !== "undefined" && value instanceof File) {
+    // undefined=変更なしのため送信しない。null=解除のため空文字/空配列で送信する。
+    if (value === undefined) continue;
+    if (key === "photo") {
+      if (typeof File !== "undefined" && value instanceof File) {
+        if (value.size === 0) continue;
+        form.append(key, value);
+      }
+      continue;
+    }
+    if (value === null) {
+      form.append(key, NULLABLE_ARRAY_FIELDS.has(key) ? "[]" : "");
+      continue;
+    }
+    if (typeof File !== "undefined" && value instanceof File) {
       form.append(key, value);
     } else if (Array.isArray(value)) {
       form.append(key, JSON.stringify(value));
