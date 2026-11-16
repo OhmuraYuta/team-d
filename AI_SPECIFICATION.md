@@ -237,11 +237,14 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
         "location": "技術センター",
         "position": "チーフエンジニア",
         "email": "yuta.ohmura@example.com",
-        "photoUrl": "/images/emp001.jpg"
+        "photoUrl": "/images/emp001.jpg",
+        "skills": ["React", "TypeScript"],
+        "credentials": ["応用情報技術者"]
       }
     ]
   }
   ```
+- ※ `skills` / `credentials` は `GET /employees/:id` と同形式の名称配列（`string[]`）で返却する。
 - **Response (400)**: `page` / `perPage` が数値範囲外など不正な場合。
 
 #### `GET /employees/:id`

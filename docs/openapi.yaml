@@ -638,6 +638,14 @@ components:
           type: string
         photoUrl:
           type: string
+        skills:
+          type: array
+          items:
+            type: string
+        credentials:
+          type: array
+          items:
+            type: string
     EmployeeDetail:
       type: object
       properties:
