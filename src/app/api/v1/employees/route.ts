@@ -12,6 +12,8 @@ interface EmployeeSearchRow {
   position: string;
   email: string;
   photo_url: string;
+  skills: string[];
+  credentials: string[];
 }
 
 const uuidV7Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -160,7 +162,19 @@ export async function GET(request: NextRequest) {
         COALESCE(l.name, '') AS location,
         COALESCE(p.name, '') AS position,
         e.email,
-        COALESCE(e.photo_url, '') AS photo_url
+        COALESCE(e.photo_url, '') AS photo_url,
+        COALESCE((
+          SELECT json_agg(s.name ORDER BY s.name)
+          FROM employee_skills es
+          JOIN skills s ON s.id = es.skill_id
+          WHERE es.employee_id = e.id
+        ), '[]'::json) AS skills,
+        COALESCE((
+          SELECT json_agg(c.name ORDER BY c.name)
+          FROM employee_credentials ec
+          JOIN credentials c ON c.id = ec.credential_id
+          WHERE ec.employee_id = e.id
+        ), '[]'::json) AS credentials
       FROM employees e
       LEFT JOIN departments d ON d.id = e.department_id
       LEFT JOIN locations l ON l.id = e.location_id
@@ -184,6 +198,8 @@ export async function GET(request: NextRequest) {
         position: row.position,
         email: row.email,
         photoUrl: row.photo_url,
+        skills: row.skills,
+        credentials: row.credentials,
       }));
 
     return NextResponse.json({ totalCount, page, perPage, totalPages, results });
