@@ -34,6 +34,22 @@ export async function GET(request: NextRequest) {
   const credential = getQueryParam(request, "credential");
   const project = getQueryParam(request, "project");
   const hobby = getQueryParam(request, "hobby");
+  const pageRaw = getQueryParam(request, "page");
+  // 仕様は perPage。フロントが送る limit も後方互換として受ける（perPage優先）。
+  const perPageRaw = getQueryParam(request, "perPage") ?? getQueryParam(request, "limit");
+
+  const page = pageRaw === undefined ? 1 : Number(pageRaw);
+  const perPage = perPageRaw === undefined ? 20 : Number(perPageRaw);
+  if (!Number.isInteger(page) || page < 1 || !Number.isInteger(perPage) || perPage < 1 || perPage > 100) {
+    return NextResponse.json<ErrorResponse>(
+      {
+        success: false,
+        error: "BAD_REQUEST",
+        message: "page は1以上の整数、perPage は1以上100以下の整数を指定してください。",
+      },
+      { status: 400 }
+    );
+  }
 
   for (const [name, value] of [
     ["departmentId", departmentId],
@@ -148,11 +164,13 @@ export async function GET(request: NextRequest) {
       LEFT JOIN filtered_employees ON TRUE
       ORDER BY filtered_employees.last_name NULLS LAST,
         filtered_employees.first_name NULLS LAST,
-        filtered_employees.employee_id NULLS LAST`,
+        filtered_employees.employee_id NULLS LAST
+      LIMIT ${perPage} OFFSET ${(page - 1) * perPage}`,
       params
     );
 
     const totalCount = result.rows[0]?.total_count ?? 0;
+    const totalPages = Math.ceil(totalCount / perPage);
     const results = result.rows
       .filter((row) => row.id !== null)
       .map((row) => ({
@@ -167,7 +185,7 @@ export async function GET(request: NextRequest) {
         photoUrl: row.photo_url,
       }));
 
-    return NextResponse.json({ totalCount, results });
+    return NextResponse.json({ totalCount, page, perPage, totalPages, results });
   } catch (error) {
     console.error("Employee search error:", error);
     return NextResponse.json<ErrorResponse>(
