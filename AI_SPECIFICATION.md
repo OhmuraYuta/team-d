@@ -202,7 +202,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 ### 4.2 社員検索・詳細
 
 #### `GET /employees`
-- **概要**: 社員情報の検索（AND条件）。
+- **概要**: 社員情報の検索（AND条件）。結果はページネーション（オフセット方式）で返却する。
 - **Query Parameters**:
   - `employeeId` (完全一致)
   - `lastName` (部分一致)
@@ -215,10 +215,18 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
   - `credential` (部分一致またはUUIDv7値のリスト)
   - `project` (過去担当プロジェクト名、部分一致)
   - `hobby` (趣味、部分一致)
+  - `page` (ページ番号、1始まり、デフォルト `1`、最小 `1`)
+  - `perPage` (1ページあたりの件数、デフォルト `20`、最小 `1`、最大 `100`)
+- **ページネーション仕様**:
+  - `totalCount` は検索条件に合致した全件数、`totalPages` は `ceil(totalCount / perPage)`。
+  - 範囲外の `page` を指定した場合は `results` を空配列で返却する。
 - **Response (200)**:
   ```json
   {
     "totalCount": 1,
+    "page": 1,
+    "perPage": 20,
+    "totalPages": 1,
     "results": [
       {
         "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2",
@@ -234,6 +242,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
     ]
   }
   ```
+- **Response (400)**: `page` / `perPage` が数値範囲外など不正な場合。
 
 #### `GET /employees/:id`
 - **概要**: 社員詳細情報の取得（`:id` は UUIDv7）。

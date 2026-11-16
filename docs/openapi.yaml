@@ -194,21 +194,71 @@ paths:
           schema:
             type: string
           description: 趣味 (部分一致)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: ページ番号 (1始まり)。省略時は1。
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 1ページあたりの件数。省略時は20。
       responses:
         '200':
-          description: 検索結果
+          description: 検索結果 (ページネーション付き)
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - totalCount
+                  - page
+                  - perPage
+                  - totalPages
+                  - results
                 properties:
                   totalCount:
                     type: integer
                     example: 1
+                    description: 検索条件に合致した全件数
+                  page:
+                    type: integer
+                    minimum: 1
+                    example: 1
+                    description: 現在のページ番号
+                  perPage:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    example: 20
+                    description: 1ページあたりの件数
+                  totalPages:
+                    type: integer
+                    minimum: 0
+                    example: 1
+                    description: 全ページ数 (ceil(totalCount / perPage))。範囲外のpage指定時はresultsが空配列になります。
                   results:
                     type: array
                     items:
                       $ref: '#/components/schemas/EmployeeSearchResult'
+        '400':
+          description: ページパラメーターが不正 (page/perPageが範囲外など)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   
   /employees/{id}:
     get:
