@@ -12,6 +12,7 @@ interface EmployeeExperience {
 
 interface EmployeeSeat {
   id: string;
+  locationId: string;
   seatCode: string;
   floor: string;
   x: number;
@@ -34,6 +35,7 @@ interface EmployeeDetailRow extends QueryResultRow {
   self_pr: string;
   hobby_info: string;
   seat_id: string | null;
+  seat_location_id: string | null;
   seat_code: string | null;
   floor: string | null;
   x: number | null;
@@ -98,6 +100,7 @@ export async function GET(
         COALESCE(e.self_pr, '') AS self_pr,
         COALESCE(e.hobby_info, '') AS hobby_info,
         seat.id AS seat_id,
+        seat.location_id AS seat_location_id,
         seat.seat_code,
         seat.floor,
         seat.x,
@@ -126,6 +129,7 @@ export async function GET(
     const seat: EmployeeSeat | undefined = employee.seat_id
       ? {
           id: employee.seat_id,
+          locationId: employee.seat_location_id!,
           seatCode: employee.seat_code!,
           floor: employee.floor!,
           x: employee.x!,

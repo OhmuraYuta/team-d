@@ -202,11 +202,12 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 ### 4.2 社員検索・詳細
 
 #### `GET /employees`
-- **概要**: 社員情報の検索（AND条件）。
+- **概要**: 社員情報の検索（AND条件）。結果はページネーション（オフセット方式）で返却する。
 - **Query Parameters**:
   - `employeeId` (完全一致)
   - `lastName` (部分一致)
   - `firstName` (部分一致)
+  - `email` (部分一致)
   - `departmentId` (完全一致、UUIDv7値)
   - `locationId` (完全一致、UUIDv7値)
   - `positionId` (完全一致、UUIDv7値)
@@ -214,10 +215,18 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
   - `credential` (部分一致またはUUIDv7値のリスト)
   - `project` (過去担当プロジェクト名、部分一致)
   - `hobby` (趣味、部分一致)
+  - `page` (ページ番号、1始まり、デフォルト `1`、最小 `1`)
+  - `perPage` (1ページあたりの件数、デフォルト `20`、最小 `1`、最大 `100`)
+- **ページネーション仕様**:
+  - `totalCount` は検索条件に合致した全件数、`totalPages` は `ceil(totalCount / perPage)`。
+  - 範囲外の `page` を指定した場合は `results` を空配列で返却する。
 - **Response (200)**:
   ```json
   {
     "totalCount": 1,
+    "page": 1,
+    "perPage": 20,
+    "totalPages": 1,
     "results": [
       {
         "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2",
@@ -228,11 +237,15 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
         "location": "技術センター",
         "position": "チーフエンジニア",
         "email": "yuta.ohmura@example.com",
-        "photoUrl": "/images/emp001.jpg"
+        "photoUrl": "/images/emp001.jpg",
+        "skills": ["React", "TypeScript"],
+        "credentials": ["応用情報技術者"]
       }
     ]
   }
   ```
+- ※ `skills` / `credentials` は `GET /employees/:id` と同形式の名称配列（`string[]`）で返却する。
+- **Response (400)**: `page` / `perPage` が数値範囲外など不正な場合。
 
 #### `GET /employees/:id`
 - **概要**: 社員詳細情報の取得（`:id` は UUIDv7）。
@@ -262,6 +275,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
     "hobbyInfo": "キャンプ、サイクリング",
     "seat": {
       "id": "01907d74-e3ba-7abc-bcde-555555555555",
+      "locationId": "01907d72-b7b5-7798-8cd3-222222222222",
       "seatCode": "A-12",
       "floor": "3F",
       "x": 25,
@@ -317,6 +331,56 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 
 #### `PUT /admin/settings/max-failed-attempts`
 - **概要**: ログイン失敗許容回数の変更設定。
+
+---
+
+### 4.5 マスタ系（部署・拠点・役職）
+
+検索フォームや管理画面のプルダウン選択肢として使用するマスタ一覧取得API。いずれも認証必須、`[{ id, name }]` を `name, id` 順で返却する。
+
+#### `GET /departments`
+- **概要**: 部署一覧の取得。社員検索フォームの部署プルダウン、管理画面の部署選択肢として使用する。
+- **認証**: 必須（`middleware.ts` でJWT検証、未認証は `401 Unauthorized`）。
+- **Response (200)**:
+  ```json
+  [
+    { "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2", "name": "技術開発部" },
+    { "id": "01907d72-f12a-7abc-bcde-1234567890ab", "name": "営業部" }
+  ]
+  ```
+  - `id` は UUIDv7、`name` は部署名。一覧は `ORDER BY name, id` で返却する。
+- **Response (401)**: 未認証。
+- **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
+
+#### `GET /locations`
+- **概要**: 拠点一覧の取得。フロアマップの拠点選択肢、社員検索フォームの拠点プルダウン、管理画面の拠点選択肢として使用する。
+- **認証**: 必須（`middleware.ts` でJWT検証、未認証は `401 Unauthorized`）。
+- **Response (200)**:
+  ```json
+  [
+    { "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2", "name": "技術センター" },
+    { "id": "01907d72-f12a-7abc-bcde-1234567890ab", "name": "本社" }
+  ]
+  ```
+  - `id` は UUIDv7、`name` は拠点名。一覧は `ORDER BY name, id` で返却する。
+- **Response (401)**: 未認証。
+- **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
+
+#### `GET /positions`
+- **概要**: 役職一覧の取得。社員検索フォームの役職プルダウン、管理画面の役職選択肢として使用する。
+- **認証**: 必須（`middleware.ts` でJWT検証、未認証は `401 Unauthorized`）。
+- **Response (200)**:
+  ```json
+  [
+    { "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2", "name": "チーフエンジニア" },
+    { "id": "01907d72-f12a-7abc-bcde-1234567890ab", "name": "マネージャー" }
+  ]
+  ```
+  - `id` は UUIDv7、`name` は役職名。一覧は `ORDER BY name, id` で返却する。
+- **Response (401)**: 未認証。
+- **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
+
+- ※ 座席一覧 `GET /seats` の詳細は `docs/openapi.yaml` の定義に準拠する。
 
 
 ---

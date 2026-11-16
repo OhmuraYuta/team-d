@@ -83,6 +83,68 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /departments:
+    get:
+      summary: 部署一覧の取得
+      description: 社員検索フォームや管理画面の部署プルダウン選択肢として利用する部署一覧を取得します。フロントの getDepartments() が利用します。
+      tags:
+        - Masters
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 部署一覧 (name, id 順)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 取得失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /positions:
+    get:
+      summary: 役職一覧の取得
+      description: 社員検索フォームや管理画面の役職プルダウン選択肢として利用する役職一覧を取得します。フロントの getPositions() が利用します。
+      tags:
+        - Masters
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 役職一覧 (name, id 順)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Position'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 取得失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /seats:
     get:
       summary: 座席一覧の取得
@@ -152,6 +214,11 @@ paths:
             type: string
           description: 名 (部分一致)
         - in: query
+          name: email
+          schema:
+            type: string
+          description: メールアドレス (部分一致)
+        - in: query
           name: departmentId
           schema:
             type: string
@@ -189,21 +256,71 @@ paths:
           schema:
             type: string
           description: 趣味 (部分一致)
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: ページ番号 (1始まり)。省略時は1。
+        - in: query
+          name: perPage
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 1ページあたりの件数。省略時は20。
       responses:
         '200':
-          description: 検索結果
+          description: 検索結果 (ページネーション付き)
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - totalCount
+                  - page
+                  - perPage
+                  - totalPages
+                  - results
                 properties:
                   totalCount:
                     type: integer
                     example: 1
+                    description: 検索条件に合致した全件数
+                  page:
+                    type: integer
+                    minimum: 1
+                    example: 1
+                    description: 現在のページ番号
+                  perPage:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+                    example: 20
+                    description: 1ページあたりの件数
+                  totalPages:
+                    type: integer
+                    minimum: 0
+                    example: 1
+                    description: 全ページ数 (ceil(totalCount / perPage))。範囲外のpage指定時はresultsが空配列になります。
                   results:
                     type: array
                     items:
                       $ref: '#/components/schemas/EmployeeSearchResult'
+        '400':
+          description: ページパラメーターが不正 (page/perPageが範囲外など)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   
   /employees/{id}:
     get:
@@ -473,6 +590,32 @@ components:
         name:
           type: string
           example: 技術センター
+    Department:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 部署ID (UUIDv7)
+        name:
+          type: string
+          example: 技術開発部
+    Position:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 役職ID (UUIDv7)
+        name:
+          type: string
+          example: チーフエンジニア
     FloorMapSeat:
       type: object
       required:
@@ -583,6 +726,14 @@ components:
           type: string
         photoUrl:
           type: string
+        skills:
+          type: array
+          items:
+            type: string
+        credentials:
+          type: array
+          items:
+            type: string
     EmployeeDetail:
       type: object
       properties:
@@ -638,6 +789,10 @@ components:
             id:
               type: string
               format: uuid
+            locationId:
+              type: string
+              format: uuid
+              description: 拠点ID (UUIDv7)
             seatCode:
               type: string
             floor:
