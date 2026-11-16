@@ -58,9 +58,10 @@ export async function GET(request: NextRequest) {
     params.push(value);
     return `$${params.length}`;
   };
+  const escapeLikePattern = (value: string) => value.replace(/([\\%_])/g, "\\$1");
   const addPartialMatch = (column: string, value: string) => {
-    const parameter = addParam(value);
-    conditions.push(`${column} ILIKE '%' || ${parameter} || '%'`);
+    const parameter = addParam(escapeLikePattern(value));
+    conditions.push(`${column} ILIKE '%' || ${parameter} || '%' ESCAPE '\\'`);
   };
 
   if (employeeId) conditions.push(`e.login_id = ${addParam(employeeId)}`);
