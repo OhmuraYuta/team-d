@@ -3,16 +3,15 @@ import { query } from "@/lib/db";
 import { ErrorResponse } from "@/lib/types/auth";
 
 interface EmployeeSearchRow {
-  id: string | null;
-  employee_id: string | null;
-  last_name: string | null;
-  first_name: string | null;
-  department: string | null;
-  location: string | null;
-  position: string | null;
-  email: string | null;
-  photo_url: string | null;
-  total_count: number;
+  id: string;
+  employee_id: string;
+  last_name: string;
+  first_name: string;
+  department: string;
+  location: string;
+  position: string;
+  email: string;
+  photo_url: string;
 }
 
 const uuidV7Pattern = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -40,12 +39,21 @@ export async function GET(request: NextRequest) {
 
   const page = pageRaw === undefined ? 1 : Number(pageRaw);
   const perPage = perPageRaw === undefined ? 20 : Number(perPageRaw);
-  if (!Number.isInteger(page) || page < 1 || !Number.isInteger(perPage) || perPage < 1 || perPage > 100) {
+  // 巨大OFFSETによる負荷防止のため page に上限を設ける（800名規模では十分な余裕）。
+  const MAX_PAGE = 10000;
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    page > MAX_PAGE ||
+    !Number.isInteger(perPage) ||
+    perPage < 1 ||
+    perPage > 100
+  ) {
     return NextResponse.json<ErrorResponse>(
       {
         success: false,
         error: "BAD_REQUEST",
-        message: "page は1以上の整数、perPage は1以上100以下の整数を指定してください。",
+        message: `page は1以上${MAX_PAGE}以下の整数、perPage は1以上100以下の整数を指定してください。`,
       },
       { status: 400 }
     );
@@ -69,8 +77,8 @@ export async function GET(request: NextRequest) {
   }
 
   const conditions: string[] = [];
-  const params: string[] = [];
-  const addParam = (value: string) => {
+  const params: (string | number)[] = [];
+  const addParam = (value: string | number) => {
     params.push(value);
     return `$${params.length}`;
   };
@@ -129,51 +137,44 @@ export async function GET(request: NextRequest) {
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   try {
+    // 件数取得とデータ取得を分離する。JOIN+LIMIT の単一クエリでは範囲外pageで
+    // OFFSET が件数行ごと切り捨て totalCount=0 になるため（仕様では本来値を返す想定）。
+    const countResult = await query<{ total_count: number }>(
+      `SELECT COUNT(*)::int AS total_count
+       FROM employees e
+       ${whereClause}`,
+      params
+    );
+    const totalCount = countResult.rows[0]?.total_count ?? 0;
+    const totalPages = Math.ceil(totalCount / perPage);
+
+    const limitParam = addParam(perPage);
+    const offsetParam = addParam((page - 1) * perPage);
     const result = await query<EmployeeSearchRow>(
-      `WITH filtered_employees AS (
-        SELECT
-          e.id,
-          e.login_id AS employee_id,
-          e.last_name,
-          e.first_name,
-          COALESCE(d.name, '') AS department,
-          COALESCE(l.name, '') AS location,
-          COALESCE(p.name, '') AS position,
-          e.email,
-          COALESCE(e.photo_url, '') AS photo_url
-        FROM employees e
-        LEFT JOIN departments d ON d.id = e.department_id
-        LEFT JOIN locations l ON l.id = e.location_id
-        LEFT JOIN positions p ON p.id = e.position_id
-        ${whereClause}
-      ), employee_count AS (
-        SELECT COUNT(*)::int AS total_count FROM filtered_employees
-      )
-      SELECT
-        employee_count.total_count,
-        filtered_employees.id,
-        filtered_employees.employee_id,
-        filtered_employees.last_name,
-        filtered_employees.first_name,
-        filtered_employees.department,
-        filtered_employees.location,
-        filtered_employees.position,
-        filtered_employees.email,
-        filtered_employees.photo_url
-      FROM employee_count
-      LEFT JOIN filtered_employees ON TRUE
-      ORDER BY filtered_employees.last_name NULLS LAST,
-        filtered_employees.first_name NULLS LAST,
-        filtered_employees.employee_id NULLS LAST
-      LIMIT ${perPage} OFFSET ${(page - 1) * perPage}`,
+      `SELECT
+        e.id,
+        e.login_id AS employee_id,
+        e.last_name,
+        e.first_name,
+        COALESCE(d.name, '') AS department,
+        COALESCE(l.name, '') AS location,
+        COALESCE(p.name, '') AS position,
+        e.email,
+        COALESCE(e.photo_url, '') AS photo_url
+      FROM employees e
+      LEFT JOIN departments d ON d.id = e.department_id
+      LEFT JOIN locations l ON l.id = e.location_id
+      LEFT JOIN positions p ON p.id = e.position_id
+      ${whereClause}
+      ORDER BY e.last_name NULLS LAST,
+        e.first_name NULLS LAST,
+        e.login_id NULLS LAST,
+        e.id NULLS LAST
+      LIMIT ${limitParam} OFFSET ${offsetParam}`,
       params
     );
 
-    const totalCount = result.rows[0]?.total_count ?? 0;
-    const totalPages = Math.ceil(totalCount / perPage);
-    const results = result.rows
-      .filter((row) => row.id !== null)
-      .map((row) => ({
+    const results = result.rows.map((row) => ({
         id: row.id,
         employeeId: row.employee_id,
         lastName: row.last_name,
