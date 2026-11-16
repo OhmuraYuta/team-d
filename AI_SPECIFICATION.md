@@ -333,9 +333,9 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 
 ---
 
-### 4.5 マスタ系（部署・役職）
+### 4.5 マスタ系（部署・拠点・役職）
 
-検索フォームや管理画面のプルダウン選択肢として使用するマスタ一覧取得API。`GET /locations` と同形（認証必須、`[{ id, name }]` を `name, id` 順で返却）に統一する。
+検索フォームや管理画面のプルダウン選択肢として使用するマスタ一覧取得API。いずれも認証必須、`[{ id, name }]` を `name, id` 順で返却する。
 
 #### `GET /departments`
 - **概要**: 部署一覧の取得。社員検索フォームの部署プルダウン、管理画面の部署選択肢として使用する。
@@ -348,6 +348,20 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
   ]
   ```
   - `id` は UUIDv7、`name` は部署名。一覧は `ORDER BY name, id` で返却する。
+- **Response (401)**: 未認証。
+- **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
+
+#### `GET /locations`
+- **概要**: 拠点一覧の取得。フロアマップの拠点選択肢、社員検索フォームの拠点プルダウン、管理画面の拠点選択肢として使用する。
+- **認証**: 必須（`middleware.ts` でJWT検証、未認証は `401 Unauthorized`）。
+- **Response (200)**:
+  ```json
+  [
+    { "id": "01907d72-b7b5-7798-8cd3-4927b233a0c2", "name": "技術センター" },
+    { "id": "01907d72-f12a-7abc-bcde-1234567890ab", "name": "本社" }
+  ]
+  ```
+  - `id` は UUIDv7、`name` は拠点名。一覧は `ORDER BY name, id` で返却する。
 - **Response (401)**: 未認証。
 - **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
 
@@ -365,7 +379,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
 - **Response (401)**: 未認証。
 - **Response (500)**: 取得失敗（例: `INTERNAL_SERVER_ERROR`）。
 
-- ※ 拠点一覧 `GET /locations`、座席一覧 `GET /seats` の詳細は `docs/openapi.yaml` の定義に準拠する。
+- ※ 座席一覧 `GET /seats` の詳細は `docs/openapi.yaml` の定義に準拠する。
 
 
 ---
