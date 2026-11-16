@@ -275,6 +275,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
     "hobbyInfo": "キャンプ、サイクリング",
     "seat": {
       "id": "01907d74-e3ba-7abc-bcde-555555555555",
+      "locationId": "01907d72-b7b5-7798-8cd3-222222222222",
       "seatCode": "A-12",
       "floor": "3F",
       "x": 25,

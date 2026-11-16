@@ -789,6 +789,10 @@ components:
             id:
               type: string
               format: uuid
+            locationId:
+              type: string
+              format: uuid
+              description: 拠点ID (UUIDv7)
             seatCode:
               type: string
             floor:
