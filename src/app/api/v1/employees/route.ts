@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
   const employeeId = getQueryParam(request, "employeeId");
   const lastName = getQueryParam(request, "lastName");
   const firstName = getQueryParam(request, "firstName");
+  const email = getQueryParam(request, "email");
   const departmentId = getQueryParam(request, "departmentId");
   const locationId = getQueryParam(request, "locationId");
   const positionId = getQueryParam(request, "positionId");
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
   if (employeeId) conditions.push(`e.login_id = ${addParam(employeeId)}`);
   if (lastName) addPartialMatch("e.last_name", lastName);
   if (firstName) addPartialMatch("e.first_name", firstName);
+  if (email) addPartialMatch("e.email", email);
   if (departmentId) conditions.push(`e.department_id = ${addParam(departmentId)}`);
   if (locationId) conditions.push(`e.location_id = ${addParam(locationId)}`);
   if (positionId) conditions.push(`e.position_id = ${addParam(positionId)}`);
