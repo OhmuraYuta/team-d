@@ -155,7 +155,6 @@ paths:
           name: email
           schema:
             type: string
-            format: email
           description: メールアドレス (部分一致)
         - in: query
           name: departmentId

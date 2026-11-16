@@ -207,6 +207,7 @@ INSERT INTO system_settings (key, value) VALUES ('max_failed_attempts', '5');
   - `employeeId` (完全一致)
   - `lastName` (部分一致)
   - `firstName` (部分一致)
+  - `email` (部分一致)
   - `departmentId` (完全一致、UUIDv7値)
   - `locationId` (完全一致、UUIDv7値)
   - `positionId` (完全一致、UUIDv7値)
