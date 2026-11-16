@@ -152,6 +152,12 @@ paths:
             type: string
           description: 名 (部分一致)
         - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+          description: メールアドレス (部分一致)
+        - in: query
           name: departmentId
           schema:
             type: string
